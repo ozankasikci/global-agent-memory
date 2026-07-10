@@ -213,6 +213,34 @@ async def test_stdio_proxy_is_protocol_pure_and_shares_daemon(tmp_path: Path) ->
         error_log.close()
 
 
+async def test_stdio_proxy_terminates_cleanly_when_stdin_closes(tmp_path: Path) -> None:
+    with daemon(tmp_path) as (_, endpoint, _token, token_file):
+        process = await asyncio.create_subprocess_exec(
+            sys.executable,
+            "-m",
+            "global_memory.mcp.stdio_proxy",
+            "--endpoint",
+            endpoint,
+            "--token-file",
+            str(token_file),
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        assert process.stdin is not None
+        process.stdin.close()
+        await process.stdin.wait_closed()
+        try:
+            return_code = await asyncio.wait_for(process.wait(), timeout=3)
+            assert return_code == 0
+            assert process.stdout is not None
+            assert await process.stdout.read() == b""
+        finally:
+            if process.returncode is None:
+                process.terminate()
+                await process.wait()
+
+
 async def test_cli_runtime_status_calls_the_mcp_daemon(tmp_path: Path) -> None:
     with daemon(tmp_path) as (_, endpoint, _token, token_file):
         result = await run_process(

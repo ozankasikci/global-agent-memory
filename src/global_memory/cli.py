@@ -26,6 +26,8 @@ from global_memory.mcp.daemon_control import daemon_status, start_daemon, stop_d
 from global_memory.mcp.stdio_proxy import run_proxy
 from global_memory.operations import (
     backup_vault,
+    disable_service,
+    enable_service,
     install_service,
     package_change,
     render_service_file,
@@ -477,8 +479,9 @@ def daemon_stop_command() -> None:
 def daemon_install_service_command(
     kind: Annotated[str, typer.Option("--kind", help="launchd or systemd.")] = "launchd",
     config_file: Annotated[Path | None, typer.Option("--config")] = None,
+    enable: Annotated[bool, typer.Option("--enable/--no-enable")] = True,
 ) -> None:
-    """Install an idempotent per-user auto-start service file."""
+    """Install and enable an idempotent per-user auto-start service."""
     paths = get_platform_paths()
     service = render_service_file(
         kind,
@@ -487,15 +490,19 @@ def daemon_install_service_command(
     )
     try:
         installed = install_service(service)
+        if enable:
+            enable_service(service)
     except GlobalMemoryError as error:
         _fail(error)
-    typer.echo(f"Installed {kind} service: {installed}")
+    action = "Installed and enabled" if enable else "Installed"
+    typer.echo(f"{action} {kind} service: {installed}")
 
 
 @daemon_app.command("uninstall-service")
 def daemon_uninstall_service_command(
     kind: Annotated[str, typer.Option("--kind", help="launchd or systemd.")] = "launchd",
     config_file: Annotated[Path | None, typer.Option("--config")] = None,
+    disable: Annotated[bool, typer.Option("--disable/--no-disable")] = True,
 ) -> None:
     """Remove only the marked service file managed by this product."""
     paths = get_platform_paths()
@@ -505,6 +512,8 @@ def daemon_uninstall_service_command(
         home=Path.home(),
     )
     try:
+        if disable and service.path.exists():
+            disable_service(service)
         removed = uninstall_service(service)
     except GlobalMemoryError as error:
         _fail(error)

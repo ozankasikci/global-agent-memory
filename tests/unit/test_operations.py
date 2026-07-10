@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import plistlib
+import sys
 import zipfile
 from pathlib import Path
 
@@ -10,6 +11,8 @@ from global_memory.errors import ErrorCode, GlobalMemoryError
 from global_memory.operations import (
     MANAGED_MARKER,
     backup_vault,
+    disable_service,
+    enable_service,
     install_service,
     render_service_file,
     restore_vault,
@@ -74,6 +77,32 @@ def test_service_install_refuses_unmanaged_file(tmp_path: Path) -> None:
     with pytest.raises(GlobalMemoryError) as caught:
         install_service(service)
     assert caught.value.code is ErrorCode.INTEGRATION_CONFLICT
+    with pytest.raises(GlobalMemoryError) as disable_caught:
+        disable_service(service)
+    assert disable_caught.value.code is ErrorCode.INTEGRATION_CONFLICT
+
+
+@pytest.mark.parametrize("kind", ["launchd", "systemd"])
+def test_native_service_enable_and_disable_commands(tmp_path: Path, kind: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    service = render_service_file(kind, config_file=tmp_path / "config.toml", home=tmp_path)
+    install_service(service)
+    calls: list[tuple[list[str], bool]] = []
+
+    def record(command: list[str], *, check: bool) -> None:
+        calls.append((command, check))
+
+    monkeypatch.setattr("global_memory.operations.subprocess.run", record)
+    enabled = enable_service(service)
+    disabled = disable_service(service)
+
+    assert enabled and disabled
+    if kind == "launchd":
+        assert enabled[0][:2] == ["launchctl", "bootout"]
+        assert enabled[1][:2] == ["launchctl", "bootstrap"]
+        assert calls[0][1] is False and calls[1][1] is True
+    else:
+        assert enabled[1] == ["systemctl", "--user", "enable", "--now", "global-memory.service"]
+        assert disabled[0] == ["systemctl", "--user", "disable", "--now", "global-memory.service"]
 
 
 def test_package_change_uses_active_interpreter_and_pinned_rollback(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -90,3 +119,28 @@ def test_package_change_uses_active_interpreter_and_pinned_rollback(monkeypatch:
     package_change("0.0.9")
     assert commands[0][-1] == "global-memory-mcp"
     assert commands[1][-1] == "global-memory-mcp==0.0.9"
+
+
+def test_package_change_supports_uv_managed_environments_without_pip(monkeypatch: pytest.MonkeyPatch) -> None:
+    commands: list[list[str]] = []
+    monkeypatch.setattr("global_memory.operations.importlib.util.find_spec", lambda _name: None)
+    monkeypatch.setattr("global_memory.operations.shutil.which", lambda _name: "/usr/local/bin/uv")
+    monkeypatch.setattr(
+        "global_memory.operations.subprocess.run",
+        lambda command, *, check: commands.append(command),
+    )
+    from global_memory.operations import package_change
+
+    package_change("0.0.8")
+
+    assert commands == [
+        [
+            "/usr/local/bin/uv",
+            "pip",
+            "install",
+            "--python",
+            sys.executable,
+            "--upgrade",
+            "global-memory-mcp==0.0.8",
+        ]
+    ]

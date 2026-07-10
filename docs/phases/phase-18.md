@@ -10,7 +10,9 @@ New combined E2E uses an HTTP session as the Claude-side client and an independe
 
 A recovery E2E kills the daemon immediately after an external Markdown write, restarts, and proves startup reconciliation indexes the durable edit. It then deletes SQLite/WAL/SHM, restarts again, and proves equivalent visible memory rebuilds from Markdown. Existing combined tests cover two Git projects with no leakage, unavailable-provider keyword fallback, complete discovery, lifecycle exclusion, security boundaries, both installer manifests, native visual assets, and fresh-wheel operation.
 
-Final `make check` passed with Ruff, strict mypy, 54 unit tests, 40 integration tests, 16 contract tests, 12 real E2E tests, and deterministic contract regeneration. A final shared-container offline-degradation integration test then raised the integration total to 41 and the gated in-process coverage to 87.56%.
+The final requirement audit also closed installer rollback, verifier fixture cleanup, idle embedding recovery, cancellation-object forwarding, stdin-close proxy termination, native service enable/disable, uv-managed package upgrades, connection-limit configuration evidence, and explicit SQLite shutdown. Python 3.14 exposed and prompted removal of one filesystem-order-dependent test and all generated-state resource warnings.
+
+Final `make check` passed with Ruff, strict mypy, 60 unit tests, 44 integration tests, 16 contract tests, 13 real E2E tests, deterministic contract regeneration, and 87.39% gated coverage. The same complete gate passed locally on macOS with Python 3.14.0rc3; a warning-as-error run over all 120 in-process tests also passed. The 10,000-note performance suite passed all four enforced budgets.
 
 The detailed scenario/gate map is in `docs/release-checklist-v1.md`. `docs/testing.md` distinguishes normal, performance, and explicitly authorized live tests.
 
@@ -18,7 +20,7 @@ The detailed scenario/gate map is in `docs/release-checklist-v1.md`. `docs/testi
 
 Automated acceptance is complete, but Phase 18 and V1 tagging remain blocked by gates that cannot be truthfully completed inside the repository test harness:
 
-1. The configured remote Ubuntu/macOS and Python 3.12/3.14 CI matrix has not produced a run in this local-only session.
+1. The configured remote Ubuntu/macOS and Python 3.12/3.14 CI matrix has not produced a run in this local-only session. Both configured interpreter lines were exercised locally on macOS (3.12.11 and 3.14.0rc3), but that does not replace Linux or remote-CI evidence.
 2. Live Claude Code install/invocation/uninstall and live Obsidian properties/Bases/graph inspection would alter actual user-scoped state and require explicit permission.
 3. The locally discovered Codex npm wrapper fails with `ENOENT` because its bundled native executable is missing; live Codex acceptance requires repairing that external installation first.
 

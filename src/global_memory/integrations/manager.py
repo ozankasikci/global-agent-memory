@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import subprocess
+import tempfile
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -149,8 +150,16 @@ class IntegrationManager:
 
     def _save(self, manifest: dict[str, Any]) -> None:
         self.state_dir.mkdir(parents=True, exist_ok=True)
-        self.manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
-        self.manifest_path.chmod(0o600)
+        contents = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+        descriptor, temporary_name = tempfile.mkstemp(prefix="integrations.", dir=self.state_dir)
+        temporary = Path(temporary_name)
+        try:
+            with os.fdopen(descriptor, "w") as handle:
+                handle.write(contents)
+            temporary.chmod(0o600)
+            temporary.replace(self.manifest_path)
+        finally:
+            temporary.unlink(missing_ok=True)
 
     def _command(self) -> list[str]:
         return [
@@ -215,57 +224,87 @@ class IntegrationManager:
                 remediation="Remove or rename it explicitly before installing this integration.",
             )
         if not dry_run:
-            replace_mode = bool(previous) and previous.get("skill_mode") != desired_mode
-            if os.path.lexists(target) and previous and not self._skill_matches(target, source_hash) and not force:
-                raise GlobalMemoryError(
-                    ErrorCode.INTEGRATION_CONFLICT,
-                    "The managed skill differs from the canonical source.",
-                    remediation="Inspect the changes, then use --force only to replace this managed artifact.",
-                )
-            if os.path.lexists(target) and (force or replace_mode or not self._skill_matches(target, source_hash)):
-                if target.is_dir() and not target.is_symlink():
-                    shutil.rmtree(target)
-                else:
-                    target.unlink()
-            if not os.path.lexists(target):
-                target.parent.mkdir(parents=True, exist_ok=True)
-                if copy:
-                    shutil.copytree(source, target)
-                else:
-                    target.symlink_to(source, target_is_directory=True)
-            if with_global_instructions:
-                instructions = self.home / spec.instructions_relative
-                snippet = (integration_root() / spec.snippet_relative).read_text()
-                if instruction_backup is None:
-                    instruction_backup = self._backup(instructions, client)
-                self._install_snippet(instructions, snippet)
-                instruction_path = str(instructions)
-                instruction_hash = hashlib.sha256(snippet.encode()).hexdigest()
-            elif previous:
-                instruction_path = previous.get("instruction_path")
-                instruction_hash = previous.get("instruction_hash")
-            if not registered:
-                backup = self._backup(config_path, client)
-                if registration_mode == "cli":
-                    self.adapter.register(spec, command)
-                else:
-                    self._fallback_register(spec, config_path, command)
-            installed = InstalledClient(
-                client,
-                str(target),
-                "copy" if copy else "symlink",
-                source_hash,
-                instruction_path,
-                instruction_hash,
-                instruction_backup,
-                str(config_path),
-                backup,
-                registration_mode,
-                command,
-            )
-            manifest["clients"][client] = asdict(installed)
-            self._save(manifest)
-            return installed
+            instructions = self.home / spec.instructions_relative
+            manifest_snapshot = self.manifest_path.read_bytes() if self.manifest_path.exists() else None
+            config_snapshot = config_path.read_bytes() if config_path.exists() else None
+            instruction_snapshot = instructions.read_bytes() if instructions.exists() else None
+            created_backups: list[Path] = []
+            with tempfile.TemporaryDirectory(prefix="global-memory-integration-") as temporary:
+                skill_snapshot = Path(temporary) / "skill"
+                skill_kind = self._snapshot_path(target, skill_snapshot)
+                try:
+                    replace_mode = bool(previous) and previous.get("skill_mode") != desired_mode
+                    if (
+                        os.path.lexists(target)
+                        and previous
+                        and not self._skill_matches(target, source_hash)
+                        and not force
+                    ):
+                        raise GlobalMemoryError(
+                            ErrorCode.INTEGRATION_CONFLICT,
+                            "The managed skill differs from the canonical source.",
+                            remediation="Inspect the changes, then use --force only to replace this managed artifact.",
+                        )
+                    if os.path.lexists(target) and (
+                        force or replace_mode or not self._skill_matches(target, source_hash)
+                    ):
+                        self._remove_path(target)
+                    if not os.path.lexists(target):
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        if copy:
+                            shutil.copytree(source, target)
+                        else:
+                            target.symlink_to(source, target_is_directory=True)
+                    if with_global_instructions:
+                        snippet = (integration_root() / spec.snippet_relative).read_text()
+                        if instruction_backup is None:
+                            instruction_backup = self._backup(instructions, client)
+                            if instruction_backup is not None:
+                                created_backups.append(Path(instruction_backup))
+                        self._install_snippet(instructions, snippet)
+                        instruction_path = str(instructions)
+                        instruction_hash = hashlib.sha256(snippet.encode()).hexdigest()
+                    elif previous:
+                        instruction_path = previous.get("instruction_path")
+                        instruction_hash = previous.get("instruction_hash")
+                    if not registered:
+                        backup = self._backup(config_path, client)
+                        if backup is not None:
+                            created_backups.append(Path(backup))
+                        if registration_mode == "cli":
+                            self.adapter.register(spec, command)
+                        else:
+                            self._fallback_register(spec, config_path, command)
+                    installed = InstalledClient(
+                        client,
+                        str(target),
+                        "copy" if copy else "symlink",
+                        source_hash,
+                        instruction_path,
+                        instruction_hash,
+                        instruction_backup,
+                        str(config_path),
+                        backup,
+                        registration_mode,
+                        command,
+                    )
+                    manifest["clients"][client] = asdict(installed)
+                    self._save(manifest)
+                    return installed
+                except Exception:
+                    if not registered and registration_mode == "cli":
+                        try:
+                            if self.adapter.is_registered(spec, command):
+                                self.adapter.unregister(spec)
+                        except Exception:
+                            pass
+                    self._restore_path(target, skill_snapshot, skill_kind)
+                    self._restore_file(instructions, instruction_snapshot)
+                    self._restore_file(config_path, config_snapshot)
+                    self._restore_file(self.manifest_path, manifest_snapshot, mode=0o600)
+                    for created_backup in created_backups:
+                        created_backup.unlink(missing_ok=True)
+                    raise
         return InstalledClient(
             client,
             str(target),
@@ -286,6 +325,49 @@ class IntegrationManager:
             return _tree_hash(target.resolve()) == expected_hash
         except OSError:
             return False
+
+    @staticmethod
+    def _remove_path(path: Path) -> None:
+        if path.is_dir() and not path.is_symlink():
+            shutil.rmtree(path)
+        elif os.path.lexists(path):
+            path.unlink()
+
+    @classmethod
+    def _snapshot_path(cls, path: Path, snapshot: Path) -> str:
+        if not os.path.lexists(path):
+            return "missing"
+        if path.is_symlink():
+            snapshot.write_text(os.readlink(path))
+            return "symlink"
+        if path.is_dir():
+            shutil.copytree(path, snapshot)
+            return "directory"
+        shutil.copy2(path, snapshot)
+        return "file"
+
+    @classmethod
+    def _restore_path(cls, path: Path, snapshot: Path, kind: str) -> None:
+        cls._remove_path(path)
+        if kind == "missing":
+            return
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if kind == "symlink":
+            path.symlink_to(snapshot.read_text(), target_is_directory=True)
+        elif kind == "directory":
+            shutil.copytree(snapshot, path)
+        else:
+            shutil.copy2(snapshot, path)
+
+    @staticmethod
+    def _restore_file(path: Path, contents: bytes | None, *, mode: int | None = None) -> None:
+        if contents is None:
+            path.unlink(missing_ok=True)
+            return
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(contents)
+        if mode is not None:
+            path.chmod(mode)
 
     @staticmethod
     def _install_snippet(path: Path, snippet: str) -> None:

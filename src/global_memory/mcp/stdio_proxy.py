@@ -51,6 +51,18 @@ async def _pump(
         await destination.send(item)
 
 
+async def _pump_until_closed(
+    source: MemoryObjectReceiveStream[SessionMessage | Exception],
+    destination: MemoryObjectSendStream[SessionMessage],
+    cancel_scope: anyio.CancelScope,
+) -> None:
+    try:
+        await _pump(source, destination)
+    finally:
+        await destination.aclose()
+        cancel_scope.cancel()
+
+
 async def _proxy(endpoint: str, token: str) -> None:
     headers = {"Authorization": f"Bearer {token}"}
     async with (
@@ -59,8 +71,8 @@ async def _proxy(endpoint: str, token: str) -> None:
         stdio_server() as local,
         anyio.create_task_group() as tasks,
     ):
-        tasks.start_soon(_pump, local[0], remote[1])
-        tasks.start_soon(_pump, remote[0], local[1])
+        tasks.start_soon(_pump_until_closed, local[0], remote[1], tasks.cancel_scope)
+        tasks.start_soon(_pump_until_closed, remote[0], local[1], tasks.cancel_scope)
 
 
 def _unavailable_server(endpoint: str) -> Server[Any]:

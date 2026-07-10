@@ -36,7 +36,7 @@ global-memory daemon install-service --kind launchd
 global-memory daemon install-service --kind systemd
 ```
 
-The command refuses to replace an unmanaged service file. The generated launchd plist uses `RunAtLoad`/`KeepAlive`; the systemd user unit uses `WantedBy=default.target`. Load or enable it with the host operating system's normal user-service command after inspection.
+The command refuses to replace an unmanaged service file, then loads/enables the per-user service immediately. The launchd plist uses `RunAtLoad`/`KeepAlive`; the systemd user unit uses `WantedBy=default.target`. Use `--no-enable` when you only want to inspect the generated file. `uninstall-service` stops/disables the service before removing its managed file; use `--no-disable` only when native service state is managed separately.
 
 ## Runtime commands
 
@@ -63,4 +63,4 @@ global-memory upgrade
 global-memory rollback 0.1.0
 ```
 
-Backups contain the canonical Vault and a SHA-256 manifest, never the external token or generated indexes. Restore accepts only safe archive paths and an empty destination. Package upgrade/rollback uses the active Python interpreter; the Vault format and Markdown data are not removed by package changes.
+Backups contain the canonical Vault and a SHA-256 manifest, never the external token or generated indexes. Restore accepts only safe archive paths and an empty destination. Package upgrade/rollback uses pip from the active Python interpreter, or `uv pip --python` when the environment intentionally has no pip module. The Vault format and Markdown data are not removed by package changes.

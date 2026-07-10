@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
+import os
 import plistlib
 import shlex
+import shutil
 import subprocess
 import sys
 import zipfile
@@ -65,7 +68,16 @@ def restore_vault(archive_path: Path, vault: Path) -> int:
 def package_change(version: str | None = None) -> list[str]:
     """Upgrade or roll back the active Python environment using its own interpreter."""
     requirement = "global-memory-mcp" + (f"=={version}" if version else "")
-    command = [sys.executable, "-m", "pip", "install", "--upgrade", requirement]
+    if importlib.util.find_spec("pip") is not None:
+        command = [sys.executable, "-m", "pip", "install", "--upgrade", requirement]
+    elif uv := shutil.which("uv"):
+        command = [uv, "pip", "install", "--python", sys.executable, "--upgrade", requirement]
+    else:
+        raise GlobalMemoryError(
+            ErrorCode.INTERNAL_ERROR,
+            "Neither pip nor uv is available to change the installed Global Memory version.",
+            remediation="Use the same environment manager that installed global-memory-mcp, then run doctor.",
+        )
     try:
         subprocess.run(command, check=True)
     except (OSError, subprocess.CalledProcessError) as exc:
@@ -138,3 +150,59 @@ def uninstall_service(service: ServiceFile) -> bool:
         raise GlobalMemoryError(ErrorCode.INTEGRATION_CONFLICT, "The service file is not managed by this product.")
     service.path.unlink()
     return True
+
+
+def enable_service(service: ServiceFile) -> list[list[str]]:
+    """Load and enable a managed per-user service with the native service manager."""
+    if not service.path.exists() or MANAGED_MARKER.encode() not in service.path.read_bytes():
+        raise GlobalMemoryError(ErrorCode.INTEGRATION_CONFLICT, "The managed service file is not installed.")
+    if service.kind == "launchd":
+        domain = f"gui/{os.getuid()}"
+        commands = [
+            ["launchctl", "bootout", f"{domain}/com.global-memory"],
+            ["launchctl", "bootstrap", domain, str(service.path)],
+        ]
+    elif service.kind == "systemd":
+        commands = [
+            ["systemctl", "--user", "daemon-reload"],
+            ["systemctl", "--user", "enable", "--now", "global-memory.service"],
+        ]
+    else:
+        raise GlobalMemoryError(ErrorCode.CONFIG_INVALID, "Service kind must be launchd or systemd.")
+    try:
+        for index, command in enumerate(commands):
+            subprocess.run(command, check=index > 0 or service.kind == "systemd")
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise GlobalMemoryError(
+            ErrorCode.INTERNAL_ERROR,
+            "The native user-service manager could not enable Global Memory.",
+            details={"kind": service.kind},
+            remediation="Inspect the installed service file, enable it manually, then run doctor.",
+        ) from exc
+    return commands
+
+
+def disable_service(service: ServiceFile) -> list[list[str]]:
+    """Stop and disable a managed per-user service before uninstalling its file."""
+    if not service.path.exists() or MANAGED_MARKER.encode() not in service.path.read_bytes():
+        raise GlobalMemoryError(ErrorCode.INTEGRATION_CONFLICT, "The managed service file is not installed.")
+    if service.kind == "launchd":
+        commands = [["launchctl", "bootout", f"gui/{os.getuid()}/com.global-memory"]]
+    elif service.kind == "systemd":
+        commands = [
+            ["systemctl", "--user", "disable", "--now", "global-memory.service"],
+            ["systemctl", "--user", "daemon-reload"],
+        ]
+    else:
+        raise GlobalMemoryError(ErrorCode.CONFIG_INVALID, "Service kind must be launchd or systemd.")
+    try:
+        for command in commands:
+            subprocess.run(command, check=False)
+    except OSError as exc:
+        raise GlobalMemoryError(
+            ErrorCode.INTERNAL_ERROR,
+            "The native user-service manager could not disable Global Memory.",
+            details={"kind": service.kind},
+            remediation="Stop the user service manually before removing the managed service file.",
+        ) from exc
+    return commands

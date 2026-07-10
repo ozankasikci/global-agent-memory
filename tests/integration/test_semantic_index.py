@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from global_memory.index.database import IndexDatabase
 from global_memory.index.embedding_indexer import EmbeddingIndexer
 from global_memory.index.indexer import Indexer
 from global_memory.index.vectors import SqliteVecStore
+from global_memory.mcp.daemon import retry_pending_embeddings
 from global_memory.mcp.server import build_container
 from global_memory.projects.models import ProjectDraft
 from global_memory.retrieval.search import SearchRequest
@@ -111,9 +113,12 @@ def test_replaced_chunks_prune_stale_sqlite_vec_rows(tmp_path: Path) -> None:
     embeddings = EmbeddingIndexer(database, vectors)
     provider = FakeEmbeddingProvider(model="fake", dimension=8)
     embeddings.sync(provider)
-    old_chunk = database.connection.execute("SELECT id FROM chunks").fetchone()[0]
+    indexed = database.connection.execute(
+        "SELECT c.id, d.path FROM chunks c JOIN documents d ON d.id=c.document_id LIMIT 1"
+    ).fetchone()
+    old_chunk = indexed["id"]
 
-    path = next((tmp_path / "vault").rglob("*.md"))
+    path = tmp_path / "vault" / indexed["path"]
     path.write_text(path.read_text().replace("input conveyor", "output conveyor"))
     keyword.index_path(path.relative_to(tmp_path / "vault"))
     new_chunk = database.connection.execute("SELECT id FROM chunks").fetchone()[0]
@@ -170,3 +175,36 @@ def test_shared_container_wires_semantics_and_degrades_when_provider_is_offline(
         ]
         == 1
     )
+
+
+@pytest.mark.asyncio
+async def test_daemon_retries_due_embedding_work_while_idle(tmp_path: Path) -> None:
+    setup_index(tmp_path)
+    provider = FakeEmbeddingProvider(model="recovering", dimension=8, available=False)
+    container = build_container(
+        tmp_path / "vault",
+        tmp_path / "data",
+        transport="test",
+        embedding_provider=provider,
+    )
+    container.database.connection.execute("UPDATE embedding_jobs SET next_attempt_at=NULL WHERE status='pending'")
+    provider.available = True
+
+    task = asyncio.create_task(retry_pending_embeddings(container, provider, batch_size=8, interval_seconds=0.01))
+    try:
+        deadline = asyncio.get_running_loop().time() + 1
+        while asyncio.get_running_loop().time() < deadline:
+            pending = container.database.connection.execute(
+                "SELECT COUNT(*) FROM embedding_jobs WHERE status='pending'"
+            ).fetchone()[0]
+            if pending == 0:
+                break
+            await asyncio.sleep(0.01)
+        else:
+            raise AssertionError("idle embedding retry did not complete")
+    finally:
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    assert container.database.connection.execute("SELECT COUNT(*) FROM embeddings").fetchone()[0] > 0

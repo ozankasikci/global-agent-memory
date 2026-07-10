@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -196,6 +196,12 @@ class IndexDatabase:
 
     def close(self) -> None:
         self.connection.close()
+
+    def __del__(self) -> None:
+        connection = getattr(self, "connection", None)
+        if connection is not None:
+            with suppress(sqlite3.Error):
+                connection.close()
 
 
 def open_recoverable_database(path: Path) -> DatabaseOpenResult:

@@ -8,6 +8,8 @@ Startup reconciliation hashes canonical Markdown and compares it with live index
 
 Embedding jobs now persist retry timing as well as attempts. Provider failures back off, stop at a configured maximum, remain visibly keyword-only, and do not block startup or keyword retrieval. A crash after provider work but before vector persistence is safe because the next eligible sync detects the missing content-hash/model row and retries the idempotent upsert.
 
+The shared daemon also runs an idle retry cycle, so due embedding work resumes after a provider recovers even if no new Vault write occurs. The cycle uses the same persisted backoff and terminal-attempt bounds.
+
 The watcher starts and stops inside the Streamable HTTP application's lifespan. Uvicorn's normal signal shutdown therefore stops and joins the observer before process exit. Managed service E2E exercises that signal path.
 
 ## Files and tests
@@ -23,4 +25,4 @@ Migration 3 and corruption recovery live in `src/global_memory/index/database.py
 
 ## Known limitations and next phase
 
-Embedding execution is currently an explicit sync service rather than a continuously scheduled daemon worker; persisted backoff and crash safety are in place. Phase 13 adds complete operational CLI coverage, doctor diagnostics, packaging verification, and native service installation.
+Embedding execution remains a deterministic sync service, with the shared daemon scheduling due retries while idle. Phase 13 adds complete operational CLI coverage, doctor diagnostics, packaging verification, and native service installation.

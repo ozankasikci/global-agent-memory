@@ -27,11 +27,11 @@ Status: **Automated acceptance passed; release tag blocked on live client/UI acc
 | Gate | Evidence | Status |
 | --- | --- | --- |
 | Ruff + strict mypy | `make check` | Pass |
-| Unit / integration / contract / E2E | 54 / 41 / 16 / 12 | Pass |
-| Coverage | In-process target excludes subprocess-only adapters; final result 87.56% | Pass |
+| Unit / integration / contract / E2E | 60 / 44 / 16 / 13 | Pass |
+| Coverage | In-process target excludes subprocess-only adapters; final result 87.39% | Pass |
 | Performance | 10k-note suite, all four budgets pass | Pass |
 | Fresh install/upgrade/docs | Isolated wheel, console scripts, schema upgrade fixture, operations/client docs | Pass |
-| Linux/macOS, Python 3.12/3.14 | Matrix configured in `.github/workflows/ci.yml` | Awaiting remote CI run |
+| Linux/macOS, Python 3.12/3.14 | Matrix configured; full gate passed locally on macOS 3.12.11 and 3.14.0rc3 | Awaiting Linux/remote CI run |
 | Claude Code live invocation/uninstall | Requires explicit permission to modify real user scope | Not run |
 | Codex live invocation/uninstall | Local npm wrapper fails with missing bundled native binary (`ENOENT`) | Blocked externally |
 | Obsidian properties/Bases/graph visual inspection | Obsidian installed; opening/mutating a user-selected Vault requires explicit permission | Not run |

@@ -34,6 +34,12 @@ class FakeAdapter:
         self.unregister_calls.append(spec.name)
 
 
+class FailingAdapter(FakeAdapter):
+    def register(self, spec: ClientSpec, command: list[str]) -> None:
+        super().register(spec, command)
+        raise GlobalMemoryError(ErrorCode.INTEGRATION_VERIFY_FAILED, "injected registration failure")
+
+
 @pytest.mark.parametrize("client", ["claude-code", "codex"])
 def test_fake_home_install_is_idempotent_manifested_and_safely_uninstalled(tmp_path: Path, client: str) -> None:
     home = tmp_path / "home"
@@ -136,3 +142,29 @@ def test_existing_unmanaged_registration_is_not_adopted(tmp_path: Path) -> None:
         manager.install("codex", copy=True)
     assert caught.value.code is ErrorCode.INTEGRATION_CONFLICT
     assert not manager.manifest_path.exists()
+
+
+@pytest.mark.parametrize("client", ["claude-code", "codex"])
+def test_failed_registration_rolls_back_every_installer_artifact(tmp_path: Path, client: str) -> None:
+    home = tmp_path / "home"
+    instruction = home / (".claude/CLAUDE.md" if client == "claude-code" else ".codex/AGENTS.md")
+    config = home / (".claude.json" if client == "claude-code" else ".codex/config.toml")
+    instruction.parent.mkdir(parents=True, exist_ok=True)
+    config.parent.mkdir(parents=True, exist_ok=True)
+    instruction.write_text("original instructions\n")
+    config.write_text('{"theme":"dark"}\n' if client == "claude-code" else 'model = "gpt"\n')
+    adapter = FailingAdapter()
+    manager = IntegrationManager(home, tmp_path / "state", adapter=adapter)
+
+    with pytest.raises(GlobalMemoryError) as caught:
+        manager.install(client, copy=True, with_global_instructions=True)  # type: ignore[arg-type]
+
+    target = home / (".claude/skills/global-memory" if client == "claude-code" else ".agents/skills/global-memory")
+    assert caught.value.code is ErrorCode.INTEGRATION_VERIFY_FAILED
+    assert not target.exists()
+    assert instruction.read_text() == "original instructions\n"
+    assert config.read_text() == ('{"theme":"dark"}\n' if client == "claude-code" else 'model = "gpt"\n')
+    assert client not in adapter.registered
+    assert adapter.unregister_calls == [client]
+    assert not manager.manifest_path.exists()
+    assert not list((tmp_path / "state").glob("backups/**/*.*"))
