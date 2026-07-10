@@ -5,6 +5,8 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 MIGRATION_1 = """
@@ -116,6 +118,25 @@ CREATE TABLE IF NOT EXISTS vector_entries (
 CREATE INDEX IF NOT EXISTS vector_entries_collection ON vector_entries(collection_key, row_id);
 """
 
+MIGRATION_3 = """
+CREATE TABLE IF NOT EXISTS index_jobs (
+    path TEXT PRIMARY KEY,
+    event_type TEXT NOT NULL,
+    status TEXT NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    last_error TEXT NULL,
+    next_attempt_at TEXT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS index_jobs_due ON index_jobs(status, next_attempt_at);
+"""
+
+
+@dataclass(frozen=True, slots=True)
+class DatabaseOpenResult:
+    database: IndexDatabase
+    recovered_from: Path | None
+
 
 class IndexDatabase:
     """Own one generated SQLite database with mandatory safety pragmas."""
@@ -150,6 +171,13 @@ class IndexDatabase:
                 + MIGRATION_2
                 + "\nINSERT INTO schema_migrations(version, applied_at) VALUES (2, datetime('now'));\nCOMMIT;"
             )
+            version = 2
+        if version < 3:
+            self.connection.executescript(
+                "BEGIN IMMEDIATE;\n"
+                + MIGRATION_3
+                + "\nINSERT INTO schema_migrations(version, applied_at) VALUES (3, datetime('now'));\nCOMMIT;"
+            )
 
     @contextmanager
     def transaction(self) -> Iterator[None]:
@@ -168,3 +196,24 @@ class IndexDatabase:
 
     def close(self) -> None:
         self.connection.close()
+
+
+def open_recoverable_database(path: Path) -> DatabaseOpenResult:
+    """Open generated state, quarantining corruption so Markdown can rebuild it."""
+    database: IndexDatabase | None = None
+    try:
+        database = IndexDatabase(path)
+        if not database.integrity_check():
+            raise sqlite3.DatabaseError("integrity_check failed")
+        return DatabaseOpenResult(database=database, recovered_from=None)
+    except sqlite3.DatabaseError:
+        if database is not None:
+            database.close()
+        stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+        quarantined = path.with_name(f"{path.name}.corrupt-{stamp}")
+        if path.exists():
+            path.replace(quarantined)
+        for suffix in ("-wal", "-shm"):
+            path.with_name(path.name + suffix).unlink(missing_ok=True)
+        rebuilt = IndexDatabase(path)
+        return DatabaseOpenResult(database=rebuilt, recovered_from=quarantined if quarantined.exists() else None)

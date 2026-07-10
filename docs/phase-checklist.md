@@ -14,7 +14,7 @@
 | 9 — MCP adapter | Complete | Official in-memory SDK client proves exact discovery, every tool/resource/prompt, envelopes, lifecycle/idempotency, working-directory isolation, and outside-Vault rejection. |
 | 10 — Daemon and stdio proxy | Complete | Authenticated localhost Streamable HTTP, SDK host/origin validation, request/connection limits, verified daemon lifecycle, protocol-pure stdio, two-client shared state, stable unavailable errors, and CLI-over-MCP E2E tests pass. |
 | 11 — Obsidian workflow | Complete | Eight idempotent templates, three valid Bases dashboards covering all required views, review docs, project hubs, visual graph links, support-file index exclusion, and lifecycle/link tests pass. |
-| 12 — Watcher and recovery | Pending | |
+| 12 — Watcher and recovery | Complete | Persisted debounced jobs, startup reconciliation, watcher-driven external edits, bounded index/embedding retries, invalid/duplicate isolation, corruption quarantine, Markdown rebuild, and signal-driven daemon shutdown tests pass. |
 | 13 — CLI, packaging, services, doctor | Pending | |
 | 14 — Shared Agent Skill | Pending | |
 | 15 — Claude Code integration | Pending | |

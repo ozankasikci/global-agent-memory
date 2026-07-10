@@ -24,8 +24,9 @@ from global_memory.application.project_service import ProjectService
 from global_memory.domain.models import HardDeleteResult, MemoryDraft, StoredMemory, SupersedeResult
 from global_memory.domain.protocols import MutationRecord
 from global_memory.errors import ErrorCode, GlobalMemoryError
-from global_memory.index.database import IndexDatabase
+from global_memory.index.database import IndexDatabase, open_recoverable_database
 from global_memory.index.indexer import Indexer
+from global_memory.index.jobs import IndexJobQueue
 from global_memory.index.mutations import SQLiteMutationStore
 from global_memory.index.vectors import SqliteVecStore
 from global_memory.projects.detector import ProjectDetector
@@ -108,8 +109,10 @@ class ServiceContainer:
     context: ContextPacker
     mutations: SQLiteMutationStore
     vectors: SqliteVecStore
+    index_jobs: IndexJobQueue
     transport: str
     vault_name: str
+    watcher_state: str = "not_started"
 
     @property
     def guard(self) -> _MutationGuard:
@@ -119,10 +122,19 @@ class ServiceContainer:
 def build_container(vault_path: Path, state_path: Path, *, transport: str = "direct") -> ServiceContainer:
     vault_path.mkdir(parents=True, exist_ok=True)
     state_path.mkdir(parents=True, exist_ok=True)
-    database = IndexDatabase(state_path / "memory.db")
+    opened = open_recoverable_database(state_path / "memory.db")
+    database = opened.database
     repository = VaultRepository(vault_path, state_path / "audit.jsonl")
     indexer = Indexer(vault_path, database)
-    indexer.full_reindex()
+    index_jobs = IndexJobQueue(database, indexer)
+    index_jobs.reconcile()
+    index_jobs.process_due()
+    if opened.recovered_from is not None:
+        database.connection.execute(
+            "INSERT INTO index_events(operation, path, status, error_code, details_json, created_at) "
+            "VALUES ('recovery', NULL, 'completed', 'INDEX_CORRUPT', ?, datetime('now'))",
+            (json.dumps({"quarantined": opened.recovered_from.name}),),
+        )
     mutations = SQLiteMutationStore(database)
 
     def on_change(paths: list[str]) -> None:
@@ -152,6 +164,7 @@ def build_container(vault_path: Path, state_path: Path, *, transport: str = "dir
         context=context,
         mutations=mutations,
         vectors=vectors,
+        index_jobs=index_jobs,
         transport=transport,
         vault_name=vault_path.name,
     )
@@ -185,9 +198,11 @@ def _status(container: ServiceContainer) -> dict[str, Any]:
         "vault_valid": container.vault_path.is_dir(),
         "document_count": document_count,
         "chunk_count": chunk_count,
-        "pending_index_jobs": 0,
+        "pending_index_jobs": container.database.connection.execute(
+            "SELECT COUNT(*) FROM index_jobs WHERE status='pending'"
+        ).fetchone()[0],
         "pending_embedding_jobs": pending,
-        "watcher_state": "not_started",
+        "watcher_state": container.watcher_state,
         "embedding_state": "not_configured",
         "vector_state": "available" if container.vectors.available else "unavailable",
         "duplicate_id_conflicts": duplicates,

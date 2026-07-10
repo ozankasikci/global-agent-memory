@@ -16,3 +16,4 @@ All notable changes are recorded here.
 - Add the complete frozen MCP V1 application adapter with self-contained discovery schemas, all tools/resources/prompts, common envelopes, stable errors, runtime project detection, and official SDK client contract tests.
 - Add the authenticated localhost Streamable HTTP daemon, bounded requests/connections, verified managed lifecycle, protocol-transparent stdio proxy, stable unavailable behavior, and CLI runtime calls through MCP.
 - Add idempotent Obsidian templates, Bases dashboards, review guidance, project overview hubs, path-stable visual links, and support-asset-aware indexing.
+- Add persisted/debounced watcher jobs, startup reconciliation, bounded retry schedules, generated-database corruption quarantine and Markdown rebuild, and graceful daemon watcher shutdown.

@@ -19,6 +19,7 @@ from starlette.routing import Mount, Route
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from global_memory.errors import ErrorCode, GlobalMemoryError
+from global_memory.index.watcher import VaultWatcher
 
 from .contract import failure
 from .server import build_container, create_mcp_server
@@ -129,10 +130,19 @@ def create_http_app(
     port: int = DEFAULT_PORT,
     max_request_bytes: int = DEFAULT_MAX_REQUEST_BYTES,
     instance_id: str | None = None,
+    watch: bool = True,
+    debounce_ms: int = 500,
+    excluded_globs: list[str] | None = None,
 ) -> ASGIApp:
     """Create the minimal authenticated MCP + health ASGI application."""
     container = build_container(vault_path, state_path, transport="streamable-http")
     mcp_server = create_mcp_server(container)
+    watcher = VaultWatcher(
+        vault_path,
+        container.index_jobs,
+        debounce_ms=debounce_ms,
+        excluded_globs=excluded_globs,
+    )
     allowed_hosts = [f"{host}:{port}", f"localhost:{port}", host, "localhost"]
     allowed_origins = [f"http://{host}:{port}", f"http://localhost:{port}"]
     manager = StreamableHTTPSessionManager(
@@ -155,8 +165,17 @@ def create_http_app(
 
     @asynccontextmanager
     async def lifespan(_app: Starlette) -> AsyncIterator[None]:
-        async with manager.run():
-            yield
+        if watch:
+            watcher.start()
+            container.watcher_state = "running"
+        try:
+            async with manager.run():
+                yield
+        finally:
+            if watch:
+                container.watcher_state = "stopping"
+                await watcher.stop()
+                container.watcher_state = "stopped"
 
     app = Starlette(
         routes=[
@@ -179,6 +198,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-request-bytes", type=int, default=DEFAULT_MAX_REQUEST_BYTES)
     parser.add_argument("--max-connections", type=int, default=DEFAULT_MAX_CONNECTIONS)
     parser.add_argument("--instance-id")
+    parser.add_argument("--no-watch", action="store_true")
+    parser.add_argument("--debounce-ms", type=int, default=500)
+    parser.add_argument("--exclude", action="append", default=[])
     return parser
 
 
@@ -192,6 +214,9 @@ async def run_daemon(args: argparse.Namespace) -> None:
         port=args.port,
         max_request_bytes=args.max_request_bytes,
         instance_id=args.instance_id,
+        watch=not args.no_watch,
+        debounce_ms=args.debounce_ms,
+        excluded_globs=args.exclude,
     )
     config = uvicorn.Config(
         app,

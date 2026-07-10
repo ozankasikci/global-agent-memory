@@ -100,6 +100,8 @@ class Indexer:
         return ReindexReport(indexed=indexed, skipped=skipped, invalid=len(invalid_paths), duplicate_ids=duplicates)
 
     def index_path(self, relative_path: Path) -> str:
+        if not is_managed_memory_path(relative_path):
+            return "ignored"
         path = safe_vault_path(self.vault_path, relative_path)
         if not path.exists():
             self.delete_path(relative_path)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import socket
 import subprocess
@@ -198,6 +199,39 @@ async def test_cli_runtime_status_calls_the_mcp_daemon(tmp_path: Path) -> None:
         envelope = json.loads(result.stdout)
         assert envelope["ok"] is True
         assert envelope["data"]["transport"] == "streamable-http"
+
+
+async def test_watcher_indexes_rapid_external_obsidian_saves(tmp_path: Path) -> None:
+    with daemon(tmp_path) as (_, endpoint, token, _token_file):
+        client, transport, session = await http_session(endpoint, token)
+        try:
+            created = await session.call_tool(
+                "memory_remember",
+                {
+                    "request_id": "watch-create",
+                    "title": "Watcher note",
+                    "content": "Original external body.",
+                    "type": "fact",
+                    "scope": "global",
+                },
+            )
+            path = Path(created.structuredContent["data"]["path"])
+            for body in ("First external body.", "Second external body.", "Final external body."):
+                text = await asyncio.to_thread(path.read_text)
+                start = text.index("\n---\n") + 5
+                await asyncio.to_thread(path.write_text, text[:start] + body)
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline:
+                found = await session.call_tool(
+                    "memory_search", {"query": "Final external", "mode": "keyword", "statuses": ["candidate"]}
+                )
+                if found.structuredContent["data"]["results"]:
+                    break
+                await asyncio.sleep(0.1)
+            else:
+                raise AssertionError("watcher did not index the final debounced save")
+        finally:
+            await close_http_session(client, transport, session)
 
 
 async def test_stdio_proxy_reports_daemon_unavailable_with_stable_error(tmp_path: Path) -> None:

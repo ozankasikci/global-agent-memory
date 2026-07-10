@@ -86,7 +86,13 @@ def start_daemon(settings: GlobalMemorySettings, paths: PlatformPaths, *, timeou
         str(settings.mcp.max_request_bytes),
         "--instance-id",
         instance_id,
+        "--debounce-ms",
+        str(settings.index.debounce_ms),
     ]
+    for pattern in settings.index.excluded_globs:
+        command.extend(["--exclude", pattern])
+    if not settings.index.watch:
+        command.append("--no-watch")
     with log_path.open("a") as log:
         process = subprocess.Popen(
             command,

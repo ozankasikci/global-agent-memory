@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -119,3 +119,25 @@ def test_replaced_chunks_prune_stale_sqlite_vec_rows(tmp_path: Path) -> None:
     report = embeddings.sync(provider)
     assert report.embedded == 1
     assert database.connection.execute("SELECT COUNT(*) FROM vector_entries").fetchone()[0] == 1
+
+
+def test_embedding_retries_are_persisted_backed_off_and_bounded(tmp_path: Path) -> None:
+    database, _ = setup_index(tmp_path)
+    current = NOW
+    embeddings = EmbeddingIndexer(
+        database,
+        SqliteVecStore(database),
+        clock=lambda: current,
+        max_attempts=3,
+    )
+    failing = FakeEmbeddingProvider(model="offline", dimension=8, available=False)
+
+    assert embeddings.sync(failing).failed == 1
+    assert embeddings.sync(failing).failed == 0
+    current += timedelta(seconds=1)
+    assert embeddings.sync(failing).failed == 1
+    current += timedelta(seconds=2)
+    assert embeddings.sync(failing).failed == 1
+    job = database.connection.execute("SELECT status, attempts, next_attempt_at FROM embedding_jobs").fetchone()
+    assert tuple(job) == ("failed", 3, None)
+    assert embeddings.sync(failing).failed == 0
