@@ -16,7 +16,7 @@
 | 11 — Obsidian workflow | Complete | Eight idempotent templates, three valid Bases dashboards covering all required views, review docs, project hubs, visual graph links, support-file index exclusion, and lifecycle/link tests pass. |
 | 12 — Watcher and recovery | Complete | Persisted debounced jobs, startup reconciliation, watcher-driven external edits, bounded index/embedding retries, invalid/duplicate isolation, corruption quarantine, Markdown rebuild, and signal-driven daemon shutdown tests pass. |
 | 13 — CLI, packaging, services, doctor | Complete | Complete MCP-routed runtime/project CLI, serve/daemon/MCP/config/integration namespaces, doctor, shell completion, safe backup/restore, upgrade/rollback, managed launchd/systemd files, upgrade fixture, subprocess lifecycle, and fresh-wheel tests pass. |
-| 14 — Shared Agent Skill | Pending | |
+| 14 — Shared Agent Skill | Complete | Canonical scaffold-validator-clean client-neutral skill covers before-work retrieval, project isolation, search/write/update/lifecycle/completion/security rules, frozen-capability references, examples, and separate skill/contract versions. |
 | 15 — Claude Code integration | Pending | |
 | 16 — Codex integration | Pending | |
 | 17 — Security and performance | Pending | |

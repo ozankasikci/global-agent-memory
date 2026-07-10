@@ -18,3 +18,4 @@ All notable changes are recorded here.
 - Add idempotent Obsidian templates, Bases dashboards, review guidance, project overview hubs, path-stable visual links, and support-asset-aware indexing.
 - Add persisted/debounced watcher jobs, startup reconciliation, bounded retry schedules, generated-database corruption quarantine and Markdown rebuild, and graceful daemon watcher shutdown.
 - Add the complete MCP-routed runtime CLI, doctor diagnostics, foreground and managed service operation, native launchd/systemd user files, shell completion, verified backup/restore, upgrade/rollback, and self-contained wheel packaging.
+- Add the canonical client-neutral Global Memory Agent Skill with bounded V1 reference material, durable-memory workflow, project isolation, optimistic lifecycle rules, source citation, and security constraints.
