@@ -19,8 +19,29 @@ from mcp.client.streamable_http import streamable_http_client
 
 from global_memory.application.diagnostics_service import run_diagnostics
 from global_memory.config import EmbeddingSettings, GlobalMemorySettings, MCPSettings, PlatformPaths
+from global_memory.integrations.manager import ClientSpec, IntegrationManager
+from global_memory.integrations.verify import verify_client
 
 pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
+
+
+class _FakeClientRegistration:
+    def __init__(self) -> None:
+        self.registered: set[str] = set()
+
+    def available(self, spec: ClientSpec) -> bool:
+        return True
+
+    def is_registered(self, spec: ClientSpec, command: list[str]) -> bool:
+        del command
+        return spec.name in self.registered
+
+    def register(self, spec: ClientSpec, command: list[str]) -> None:
+        del command
+        self.registered.add(spec.name)
+
+    def unregister(self, spec: ClientSpec) -> None:
+        self.registered.remove(spec.name)
 
 
 def free_port() -> int:
@@ -284,6 +305,26 @@ async def test_doctor_verifies_direct_and_stdio_mcp_connectivity(tmp_path: Path)
         assert transport["daemon_readiness"] == "pass"
         assert transport["direct_mcp_discovery"] == "pass"
         assert transport["stdio_proxy"] == "pass"
+
+
+async def test_both_client_installers_verify_shared_daemon_and_project_isolation(tmp_path: Path) -> None:
+    with daemon(tmp_path) as (_, endpoint, _token, token_file):
+        adapter = _FakeClientRegistration()
+        manager = IntegrationManager(
+            tmp_path / "home",
+            tmp_path / "integration-state",
+            adapter=adapter,
+            endpoint=endpoint,
+            token_file=token_file,
+        )
+        manager.install("claude-code", copy=True)
+        manager.install("codex", copy=True)
+
+        claude = await verify_client(manager, "claude-code")
+        codex = await verify_client(manager, "codex")
+
+        assert claude.ok, claude.checks
+        assert codex.ok, codex.checks
 
 
 async def test_stdio_proxy_reports_daemon_unavailable_with_stable_error(tmp_path: Path) -> None:

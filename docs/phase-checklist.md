@@ -17,7 +17,7 @@
 | 12 — Watcher and recovery | Complete | Persisted debounced jobs, startup reconciliation, watcher-driven external edits, bounded index/embedding retries, invalid/duplicate isolation, corruption quarantine, Markdown rebuild, and signal-driven daemon shutdown tests pass. |
 | 13 — CLI, packaging, services, doctor | Complete | Complete MCP-routed runtime/project CLI, serve/daemon/MCP/config/integration namespaces, doctor, shell completion, safe backup/restore, upgrade/rollback, managed launchd/systemd files, upgrade fixture, subprocess lifecycle, and fresh-wheel tests pass. |
 | 14 — Shared Agent Skill | Complete | Canonical scaffold-validator-clean client-neutral skill covers before-work retrieval, project isolation, search/write/update/lifecycle/completion/security rules, frozen-capability references, examples, and separate skill/contract versions. |
-| 15 — Claude Code integration | Pending | |
-| 16 — Codex integration | Pending | |
+| 15 — Claude Code integration | Complete | Fake-home symlink/copy install, official user-scope CLI registration adapter, guarded JSON fallback, manifest/backups, optional snippet, status/verify/uninstall, conflict/idempotency, and shared-daemon verification pass; real user config was not mutated. |
+| 16 — Codex integration | Complete | Fake-home symlink/copy install, official CLI registration adapter, marked TOML fallback, manifest/backups, optional AGENTS snippet, status/verify/uninstall, conflict/idempotency, and shared-daemon verification pass; local Codex binary is broken so live acceptance is deferred. |
 | 17 — Security and performance | Pending | |
 | 18 — V1 release acceptance | Pending | |

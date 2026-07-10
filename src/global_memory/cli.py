@@ -6,6 +6,7 @@ import asyncio
 import json
 import uuid
 from argparse import Namespace
+from dataclasses import asdict
 from pathlib import Path
 from typing import Annotated, Any, Never
 
@@ -15,7 +16,9 @@ from rich import print_json
 from global_memory import __version__
 from global_memory.application.diagnostics_service import run_diagnostics
 from global_memory.config import get_platform_paths, load_settings
-from global_memory.errors import GlobalMemoryError
+from global_memory.errors import ErrorCode, GlobalMemoryError
+from global_memory.integrations.manager import ClientName, IntegrationManager
+from global_memory.integrations.verify import verify_client
 from global_memory.mcp.client import call_http_tool
 from global_memory.mcp.contract import load_discovery
 from global_memory.mcp.daemon import run_daemon
@@ -605,7 +608,7 @@ def project_add_command(
 ) -> None:
     """Add a project registry entry through MCP."""
     payload: dict[str, Any] = {
-        "canonical_name": name,
+        "name": name,
         "roots": root or [],
         "git_remotes": remote or [],
         "aliases": alias or [],
@@ -667,21 +670,121 @@ def mcp_proxy_command(
     asyncio.run(run_proxy(endpoint, token_file or get_platform_paths().auth_token))
 
 
-@integrations_app.command("status")
-def integrations_status_command() -> None:
-    """Show the platform-aware canonical skill targets without modifying them."""
-    print_json(
-        data={
-            "claude-code": {
-                "path": str(Path.home() / ".claude/skills/global-memory"),
-                "installed": (Path.home() / ".claude/skills/global-memory").exists(),
-            },
-            "codex": {
-                "path": str(Path.home() / ".agents/skills/global-memory"),
-                "installed": (Path.home() / ".agents/skills/global-memory").exists(),
-            },
-        }
+def _integration_targets(target: str) -> list[ClientName]:
+    if target == "all":
+        return ["claude-code", "codex"]
+    if target not in {"claude-code", "codex"}:
+        raise GlobalMemoryError(ErrorCode.CONFIG_INVALID, "Target must be claude-code, codex, or all.")
+    return [target]  # type: ignore[list-item]
+
+
+def _integration_manager(config_file: Path | None = None) -> IntegrationManager:
+    paths = get_platform_paths()
+    settings = load_settings(config_file or paths.config_file)
+    return IntegrationManager(
+        Path.home(),
+        paths.data_dir,
+        endpoint=f"http://{settings.mcp.host}:{settings.mcp.port}/mcp/",
+        token_file=paths.auth_token,
     )
+
+
+@integrations_app.command("install")
+def integrations_install_command(
+    target: Annotated[str, typer.Argument(help="claude-code, codex, or all")],
+    copy: Annotated[bool, typer.Option("--copy", help="Copy instead of symlinking the skill.")] = False,
+    with_global_instructions: Annotated[bool, typer.Option("--with-global-instructions")] = False,
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+    force: Annotated[bool, typer.Option("--force")] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+    config_file: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Install the canonical skill and user-scoped stdio MCP registration safely."""
+    try:
+        manager = _integration_manager(config_file)
+        results = [
+            asdict(
+                manager.install(
+                    client,
+                    copy=copy,
+                    with_global_instructions=with_global_instructions,
+                    dry_run=dry_run,
+                    force=force,
+                )
+            )
+            for client in _integration_targets(target)
+        ]
+    except GlobalMemoryError as error:
+        _fail(error)
+    if json_output:
+        print_json(data=results)
+    else:
+        for result in results:
+            typer.echo(f"{result['name']}: {result['skill_path']} ({result['skill_mode']})")
+
+
+@integrations_app.command("status")
+def integrations_status_command(
+    target: Annotated[str, typer.Argument(help="claude-code, codex, or all")] = "all",
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+    config_file: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Show managed skill and MCP registration integrity."""
+    try:
+        manager = _integration_manager(config_file)
+        results = [manager.status(client) for client in _integration_targets(target)]
+    except GlobalMemoryError as error:
+        _fail(error)
+    if json_output:
+        print_json(data=results)
+    else:
+        for result in results:
+            typer.echo(
+                f"{result['client']}: skill={'ok' if result['skill_valid'] else 'missing/changed'}, "
+                f"mcp={'registered' if result['mcp_registered'] else 'missing'}"
+            )
+
+
+@integrations_app.command("verify")
+def integrations_verify_command(
+    target: Annotated[str, typer.Argument(help="claude-code, codex, or all")],
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+    config_file: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Run installation, MCP discovery, lifecycle, Git detection, and isolation acceptance."""
+    try:
+        manager = _integration_manager(config_file)
+        reports = [asyncio.run(verify_client(manager, client)) for client in _integration_targets(target)]
+    except GlobalMemoryError as error:
+        _fail(error)
+    values = [report.as_dict() for report in reports]
+    if json_output:
+        print_json(data=values)
+    else:
+        for report in reports:
+            typer.echo(f"{report.client}: {'verified' if report.ok else 'failed'}")
+    if not all(report.ok for report in reports):
+        raise typer.Exit(code=2)
+
+
+@integrations_app.command("uninstall")
+def integrations_uninstall_command(
+    target: Annotated[str, typer.Argument(help="claude-code, codex, or all")],
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+    config_file: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Remove only artifacts recorded in the integration manifest."""
+    try:
+        manager = _integration_manager(config_file)
+        results = {client: manager.uninstall(client, dry_run=dry_run) for client in _integration_targets(target)}
+    except GlobalMemoryError as error:
+        _fail(error)
+    if json_output:
+        print_json(data=results)
+    else:
+        for client, removed in results.items():
+            typer.echo(f"{client}: {'removed' if removed else 'not installed'}")
 
 
 def main() -> None:

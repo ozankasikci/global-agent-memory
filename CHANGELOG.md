@@ -19,3 +19,4 @@ All notable changes are recorded here.
 - Add persisted/debounced watcher jobs, startup reconciliation, bounded retry schedules, generated-database corruption quarantine and Markdown rebuild, and graceful daemon watcher shutdown.
 - Add the complete MCP-routed runtime CLI, doctor diagnostics, foreground and managed service operation, native launchd/systemd user files, shell completion, verified backup/restore, upgrade/rollback, and self-contained wheel packaging.
 - Add the canonical client-neutral Global Memory Agent Skill with bounded V1 reference material, durable-memory workflow, project isolation, optimistic lifecycle rules, source citation, and security constraints.
+- Add guarded Claude Code and Codex installers with canonical skill symlink/copy modes, preferred official CLI registration, backed-up config fallbacks, managed instruction snippets, manifests, status/verify/uninstall, and shared-daemon isolation acceptance.

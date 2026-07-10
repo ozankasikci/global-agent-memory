@@ -50,6 +50,7 @@ packages = ["src/global_memory"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "contracts/mcp/v1" = "global_memory/_contract/mcp/v1"
+"integrations" = "global_memory/_integration"
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-config --strict-markers"
