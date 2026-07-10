@@ -6,7 +6,7 @@
 | 1 — Repository and quality gates | Complete | Package import, CLI version, lint, mypy, unit, contract, and baseline check pass. |
 | 2 — Configuration and Vault initialization | Complete | Precedence, validation, idempotency, token-mode, overwrite-safety, and state-separation tests pass. |
 | 3 — Domain and Markdown repository | Complete | Domain, Markdown, routing, confinement, atomic-write, concurrency, lifecycle-service, and audit tests pass. |
-| 4 — SQLite, chunking, and FTS | Pending | |
+| 4 — SQLite, chunking, and FTS | Complete | Migration, WAL/FK, chunking, full/incremental, exact/phrase/Unicode/metadata search, move/delete, duplicate, invalid-note, and rebuild tests pass. |
 | 5 — Lifecycle and idempotency | Pending | |
 | 6 — Project registry and detection | Pending | |
 | 7 — Embeddings and vectors | Pending | |
