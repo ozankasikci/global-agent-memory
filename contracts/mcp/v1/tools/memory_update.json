@@ -38,6 +38,7 @@
         "type": "object"
       },
       "request_id": {
+        "minLength": 1,
         "type": "string"
       },
       "section_patch": {

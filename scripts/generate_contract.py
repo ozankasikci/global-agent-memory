@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "contracts" / "mcp" / "v1"
 
 STRING = {"type": "string"}
+REQUEST_ID = {"type": "string", "minLength": 1}
 OPT_STRING = {"type": ["string", "null"]}
 STRING_ARRAY = {"type": "array", "items": {"type": "string"}, "uniqueItems": True}
 PROJECT_FIELDS = {
@@ -125,7 +126,7 @@ TOOLS = [
         "Create an auditable candidate memory after duplicate detection; V1 never creates active memory directly.",
         obj(
             {
-                "request_id": {"type": "string", "minLength": 1},
+                "request_id": REQUEST_ID,
                 "title": {"type": "string", "minLength": 1},
                 "content": {"type": "string", "minLength": 1},
                 "type": {"type": "string", "minLength": 1},
@@ -149,7 +150,7 @@ TOOLS = [
         "Update explicitly selected memory fields with optimistic concurrency and unknown-property preservation.",
         obj(
             {
-                "request_id": STRING,
+                "request_id": REQUEST_ID,
                 "id": STRING,
                 "expected_updated_at": STRING,
                 "metadata_patch": {"type": "object"},
@@ -168,7 +169,7 @@ TOOLS = [
         "Approve a candidate, route it canonically, preserve identity, and make it available to default retrieval.",
         obj(
             {
-                "request_id": STRING,
+                "request_id": REQUEST_ID,
                 "id": STRING,
                 "expected_updated_at": OPT_STRING,
                 "destination_override": OPT_STRING,
@@ -182,7 +183,7 @@ TOOLS = [
         "Reject and retain a candidate in a deterministic audit location without hard deleting its evidence.",
         obj(
             {
-                "request_id": STRING,
+                "request_id": REQUEST_ID,
                 "id": STRING,
                 "reason": {"type": "string", "minLength": 1},
                 "expected_updated_at": OPT_STRING,
@@ -196,7 +197,7 @@ TOOLS = [
         "Supersede an existing memory with an identified or candidate replacement while retaining reciprocal history.",
         obj(
             {
-                "request_id": STRING,
+                "request_id": REQUEST_ID,
                 "old_id": STRING,
                 "replacement_id": STRING,
                 "replacement": {"type": "object"},
@@ -212,7 +213,7 @@ TOOLS = [
         "Archive a durable memory by default, requiring explicit hard-delete intent for destructive removal.",
         obj(
             {
-                "request_id": STRING,
+                "request_id": REQUEST_ID,
                 "id": STRING,
                 "reason": {"type": "string", "minLength": 1},
                 "hard_delete": {"type": "boolean", "default": False},
@@ -231,7 +232,7 @@ TOOLS = [
         "Reconcile generated indexes from validated Vault-relative paths or rebuild all disposable state.",
         obj(
             {
-                "request_id": STRING,
+                "request_id": REQUEST_ID,
                 "full": {"type": "boolean", "default": False},
                 "paths": STRING_ARRAY,
                 "verbose": {"type": "boolean", "default": False},
@@ -251,10 +252,16 @@ TOOLS = [
             {
                 "action": {"type": "string", "enum": ["list", "get", "detect", "add", "update", "deactivate"]},
                 "payload": {"type": "object"},
-                "request_id": OPT_STRING,
+                "request_id": REQUEST_ID,
                 "verbose": {"type": "boolean", "default": False},
             },
             ["action"],
+            constraints=[
+                {
+                    "if": {"properties": {"action": {"enum": ["add", "update", "deactivate"]}}},
+                    "then": {"required": ["request_id"]},
+                }
+            ],
         ),
     ),
     tool(

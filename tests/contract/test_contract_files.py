@@ -4,6 +4,8 @@ import json
 import unittest
 from pathlib import Path
 
+from jsonschema import Draft202012Validator
+
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_ROOT = ROOT / "contracts" / "mcp" / "v1"
 
@@ -92,6 +94,28 @@ class ContractFilesTest(unittest.TestCase):
         self.assertTrue(examples["valid"])
         self.assertTrue(examples["invalid"])
         self.assertTrue(all("reason" in item for item in examples["invalid"]))
+        schemas = {item["name"]: item["inputSchema"] for item in self.discovery["tools"]}
+        for example in examples["valid"]:
+            errors = list(Draft202012Validator(schemas[example["tool"]]).iter_errors(example["arguments"]))
+            self.assertEqual(errors, [], example)
+        for example in examples["invalid"]:
+            errors = list(Draft202012Validator(schemas[example["tool"]]).iter_errors(example["arguments"]))
+            self.assertTrue(errors, example)
+
+    def test_every_schema_is_valid_json_schema(self) -> None:
+        for tool in self.discovery["tools"]:
+            Draft202012Validator.check_schema(tool["inputSchema"])
+        for name in ("success-envelope.json", "error-envelope.json"):
+            Draft202012Validator.check_schema(json.loads((CONTRACT_ROOT / "schemas" / name).read_text()))
+
+    def test_project_mutations_conditionally_require_request_id(self) -> None:
+        projects = next(tool for tool in self.discovery["tools"] if tool["name"] == "memory_projects")
+        validator = Draft202012Validator(projects["inputSchema"])
+        self.assertFalse(list(validator.iter_errors({"action": "list"})))
+        self.assertTrue(list(validator.iter_errors({"action": "add", "payload": {"name": "A"}})))
+        self.assertFalse(
+            list(validator.iter_errors({"action": "add", "payload": {"name": "A"}, "request_id": "req-1"}))
+        )
 
     def test_generated_capability_files_match_discovery(self) -> None:
         for category, key in (("tools", "name"), ("resources", "name"), ("prompts", "name")):

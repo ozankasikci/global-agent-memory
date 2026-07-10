@@ -18,6 +18,7 @@
         "type": "string"
       },
       "request_id": {
+        "minLength": 1,
         "type": "string"
       },
       "verbose": {

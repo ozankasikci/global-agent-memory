@@ -550,6 +550,7 @@
             "type": "object"
           },
           "request_id": {
+            "minLength": 1,
             "type": "string"
           },
           "section_patch": {
@@ -597,6 +598,7 @@
             "type": "string"
           },
           "request_id": {
+            "minLength": 1,
             "type": "string"
           },
           "verbose": {
@@ -635,6 +637,7 @@
             "type": "string"
           },
           "request_id": {
+            "minLength": 1,
             "type": "string"
           },
           "verbose": {
@@ -690,6 +693,7 @@
             "type": "string"
           },
           "request_id": {
+            "minLength": 1,
             "type": "string"
           },
           "verbose": {
@@ -727,6 +731,7 @@
             "type": "string"
           },
           "request_id": {
+            "minLength": 1,
             "type": "string"
           },
           "verbose": {
@@ -783,6 +788,7 @@
             "uniqueItems": true
           },
           "request_id": {
+            "minLength": 1,
             "type": "string"
           },
           "verbose": {
@@ -825,6 +831,26 @@
       "description": "List, inspect, detect, add, update, or deactivate project registry entries with explicit mutation IDs.",
       "inputSchema": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "add",
+                    "update",
+                    "deactivate"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "request_id"
+              ]
+            }
+          }
+        ],
         "properties": {
           "action": {
             "enum": [
@@ -841,10 +867,8 @@
             "type": "object"
           },
           "request_id": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "minLength": 1,
+            "type": "string"
           },
           "verbose": {
             "default": false,
