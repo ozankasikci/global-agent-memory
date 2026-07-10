@@ -1,0 +1,18 @@
+{
+  "arguments": [
+    {
+      "description": "The explicit project to review.",
+      "name": "project",
+      "required": true
+    },
+    {
+      "description": "Maximum decisions to examine.",
+      "name": "limit",
+      "required": false
+    }
+  ],
+  "contract_version": 1,
+  "description": "Review recent active decisions for one project while preserving lifecycle and project boundaries.",
+  "messageTemplate": "Read the project decisions resource and fetch individual notes as needed. Cite every materially used memory by immutable ID and Vault-relative path. Do not write memory automatically.",
+  "name": "review_recent_decisions"
+}

@@ -1,0 +1,40 @@
+{
+  "contract_version": 1,
+  "description": "Approve a candidate, route it canonically, preserve identity, and make it available to default retrieval.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "destination_override": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "expected_updated_at": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "id": {
+        "type": "string"
+      },
+      "request_id": {
+        "type": "string"
+      },
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "request_id",
+      "id"
+    ],
+    "type": "object"
+  },
+  "name": "memory_approve",
+  "outputSchema": {
+    "$ref": "schemas/success-envelope.json"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "description": "Report daemon, Vault, index, watcher, semantic fallback, conflict, and transport health.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [],
+    "type": "object"
+  },
+  "name": "memory_status",
+  "outputSchema": {
+    "$ref": "schemas/success-envelope.json"
+  }
+}

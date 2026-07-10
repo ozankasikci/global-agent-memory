@@ -1,0 +1,39 @@
+{
+  "contract_version": 1,
+  "description": "Reject and retain a candidate in a deterministic audit location without hard deleting its evidence.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "expected_updated_at": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "id": {
+        "type": "string"
+      },
+      "reason": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "request_id": {
+        "type": "string"
+      },
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "request_id",
+      "id",
+      "reason"
+    ],
+    "type": "object"
+  },
+  "name": "memory_reject",
+  "outputSchema": {
+    "$ref": "schemas/success-envelope.json"
+  }
+}

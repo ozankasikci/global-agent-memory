@@ -1,0 +1,41 @@
+{
+  "contract_version": 1,
+  "description": "List, inspect, detect, add, update, or deactivate project registry entries with explicit mutation IDs.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "action": {
+        "enum": [
+          "list",
+          "get",
+          "detect",
+          "add",
+          "update",
+          "deactivate"
+        ],
+        "type": "string"
+      },
+      "payload": {
+        "type": "object"
+      },
+      "request_id": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "action"
+    ],
+    "type": "object"
+  },
+  "name": "memory_projects",
+  "outputSchema": {
+    "$ref": "schemas/success-envelope.json"
+  }
+}

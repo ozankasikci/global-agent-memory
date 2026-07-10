@@ -1,0 +1,65 @@
+{
+  "contract_version": 1,
+  "description": "Update explicitly selected memory fields with optimistic concurrency and unknown-property preservation.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "allOf": [
+      {
+        "anyOf": [
+          {
+            "required": [
+              "metadata_patch"
+            ]
+          },
+          {
+            "required": [
+              "body"
+            ]
+          },
+          {
+            "required": [
+              "section_patch"
+            ]
+          }
+        ]
+      }
+    ],
+    "properties": {
+      "body": {
+        "type": "string"
+      },
+      "expected_updated_at": {
+        "type": "string"
+      },
+      "id": {
+        "type": "string"
+      },
+      "metadata_patch": {
+        "type": "object"
+      },
+      "request_id": {
+        "type": "string"
+      },
+      "section_patch": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "request_id",
+      "id",
+      "expected_updated_at"
+    ],
+    "type": "object"
+  },
+  "name": "memory_update",
+  "outputSchema": {
+    "$ref": "schemas/success-envelope.json"
+  }
+}

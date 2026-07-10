@@ -1,0 +1,10 @@
+{
+  "contract_version": 1,
+  "description": "Read normalized tags and usage counts under default scope and status rules.",
+  "mimeType": "application/json",
+  "name": "tags",
+  "responseSchema": {
+    "$ref": "schemas/success-envelope.json"
+  },
+  "uriTemplate": "memory://v1/tags"
+}

@@ -1,0 +1,37 @@
+{
+  "contract_version": 1,
+  "description": "Archive a durable memory by default, requiring explicit hard-delete intent for destructive removal.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "hard_delete": {
+        "default": false,
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "reason": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "request_id": {
+        "type": "string"
+      },
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "request_id",
+      "id",
+      "reason"
+    ],
+    "type": "object"
+  },
+  "name": "memory_archive",
+  "outputSchema": {
+    "$ref": "schemas/success-envelope.json"
+  }
+}

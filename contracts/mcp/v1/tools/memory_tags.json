@@ -1,0 +1,55 @@
+{
+  "contract_version": 1,
+  "description": "List normalized memory tags and usage counts with project-safe filters and cursor pagination.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "cursor": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "limit": {
+        "default": 50,
+        "maximum": 100,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "prefix": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "project": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "scope": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "status": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [],
+    "type": "object"
+  },
+  "name": "memory_tags",
+  "outputSchema": {
+    "$ref": "schemas/success-envelope.json"
+  }
+}

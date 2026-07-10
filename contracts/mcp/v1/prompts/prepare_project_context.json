@@ -1,0 +1,23 @@
+{
+  "arguments": [
+    {
+      "description": "The concrete task requiring context.",
+      "name": "task",
+      "required": true
+    },
+    {
+      "description": "Explicit project name when known.",
+      "name": "project",
+      "required": false
+    },
+    {
+      "description": "Current local working directory.",
+      "name": "working_directory",
+      "required": false
+    }
+  ],
+  "contract_version": 1,
+  "description": "Prepare bounded context before substantial planning, implementation, refactoring, or debugging.",
+  "messageTemplate": "Call memory_context first for the task and resolved project. Search only for missing exact details. Cite every materially used memory by immutable ID and Vault-relative path. Do not write memory automatically.",
+  "name": "prepare_project_context"
+}

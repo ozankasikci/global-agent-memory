@@ -1,0 +1,102 @@
+{
+  "contract_version": 1,
+  "description": "Create an auditable candidate memory after duplicate detection; V1 never creates active memory directly.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "confidence": {
+        "default": 0.5,
+        "maximum": 1,
+        "minimum": 0,
+        "type": "number"
+      },
+      "content": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "force": {
+        "default": false,
+        "type": "boolean"
+      },
+      "importance": {
+        "default": 0.5,
+        "maximum": 1,
+        "minimum": 0,
+        "type": "number"
+      },
+      "links": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
+      },
+      "project": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "request_id": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "scope": {
+        "enum": [
+          "global",
+          "organization",
+          "project",
+          "session"
+        ],
+        "type": "string"
+      },
+      "source_kind": {
+        "default": "ai",
+        "type": "string"
+      },
+      "source_ref": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "tags": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
+      },
+      "title": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      },
+      "working_directory": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "required": [
+      "request_id",
+      "title",
+      "content",
+      "type",
+      "scope"
+    ],
+    "type": "object"
+  },
+  "name": "memory_remember",
+  "outputSchema": {
+    "$ref": "schemas/success-envelope.json"
+  }
+}

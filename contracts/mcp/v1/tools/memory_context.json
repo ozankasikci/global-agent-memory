@@ -1,0 +1,61 @@
+{
+  "contract_version": 1,
+  "description": "Pack diverse project-aware memory into a bounded context bundle with explicit source attribution.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "cross_project": {
+        "default": false,
+        "type": "boolean"
+      },
+      "project": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "tags": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
+      },
+      "task": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "token_budget": {
+        "default": 3000,
+        "maximum": 20000,
+        "minimum": 128,
+        "type": "integer"
+      },
+      "types": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
+      },
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      },
+      "working_directory": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "required": [
+      "task"
+    ],
+    "type": "object"
+  },
+  "name": "memory_context",
+  "outputSchema": {
+    "$ref": "schemas/success-envelope.json"
+  }
+}

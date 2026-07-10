@@ -1,0 +1,13 @@
+{
+  "arguments": [
+    {
+      "description": "Optional project filter.",
+      "name": "project",
+      "required": false
+    }
+  ],
+  "contract_version": 1,
+  "description": "Review candidate memories for duplicates, evidence, durability, and lifecycle action without auto-writing.",
+  "messageTemplate": "Read the candidates resource and compare likely duplicates with memory_search. Recommend actions, but take none automatically. Cite every materially used memory by immutable ID and Vault-relative path. Do not write memory automatically.",
+  "name": "review_memory_candidates"
+}

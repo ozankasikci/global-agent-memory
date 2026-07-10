@@ -1,0 +1,34 @@
+{
+  "$id": "https://global-memory.local/contracts/mcp/v1/schemas/success-envelope.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "const": 1
+    },
+    "data": {},
+    "diagnostics": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "ok": {
+      "const": true
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract_version",
+    "ok",
+    "data",
+    "warnings",
+    "diagnostics"
+  ],
+  "type": "object"
+}

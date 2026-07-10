@@ -1,0 +1,10 @@
+{
+  "contract_version": 1,
+  "description": "Read one project overview using the same isolation semantics as memory tools.",
+  "mimeType": "application/json",
+  "name": "project",
+  "responseSchema": {
+    "$ref": "schemas/success-envelope.json"
+  },
+  "uriTemplate": "memory://v1/project/{project}"
+}

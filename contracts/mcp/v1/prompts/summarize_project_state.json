@@ -1,0 +1,13 @@
+{
+  "arguments": [
+    {
+      "description": "The explicit project to summarize.",
+      "name": "project",
+      "required": true
+    }
+  ],
+  "contract_version": 1,
+  "description": "Summarize current project facts, decisions, solutions, and recent sessions from isolated sources.",
+  "messageTemplate": "Read the project resource, then search within that project for gaps. Cite every materially used memory by immutable ID and Vault-relative path. Do not write memory automatically.",
+  "name": "summarize_project_state"
+}

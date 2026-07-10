@@ -1,0 +1,20 @@
+{
+  "contract_version": 1,
+  "description": "Return a memory filesystem path and encoded Obsidian URI without launching external software.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "type": "object"
+  },
+  "name": "memory_open",
+  "outputSchema": {
+    "$ref": "schemas/success-envelope.json"
+  }
+}

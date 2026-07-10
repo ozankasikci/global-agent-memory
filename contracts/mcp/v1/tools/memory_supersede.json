@@ -1,0 +1,55 @@
+{
+  "contract_version": 1,
+  "description": "Supersede an existing memory with an identified or candidate replacement while retaining reciprocal history.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "allOf": [
+      {
+        "oneOf": [
+          {
+            "required": [
+              "replacement_id"
+            ]
+          },
+          {
+            "required": [
+              "replacement"
+            ]
+          }
+        ]
+      }
+    ],
+    "properties": {
+      "old_id": {
+        "type": "string"
+      },
+      "reason": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "replacement": {
+        "type": "object"
+      },
+      "replacement_id": {
+        "type": "string"
+      },
+      "request_id": {
+        "type": "string"
+      },
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "request_id",
+      "old_id",
+      "reason"
+    ],
+    "type": "object"
+  },
+  "name": "memory_supersede",
+  "outputSchema": {
+    "$ref": "schemas/success-envelope.json"
+  }
+}

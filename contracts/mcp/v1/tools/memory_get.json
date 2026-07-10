@@ -1,0 +1,24 @@
+{
+  "contract_version": 1,
+  "description": "Read one memory with metadata, body, links, lifecycle state, and concurrency version.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "type": "object"
+  },
+  "name": "memory_get",
+  "outputSchema": {
+    "$ref": "schemas/success-envelope.json"
+  }
+}
