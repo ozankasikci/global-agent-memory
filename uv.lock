@@ -323,8 +323,10 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pyyaml" },
     { name = "sqlite-vec" },
+    { name = "starlette" },
     { name = "structlog" },
     { name = "typer" },
+    { name = "uvicorn" },
     { name = "watchdog" },
 ]
 
@@ -352,8 +354,10 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.10,<3" },
     { name = "pyyaml", specifier = ">=6.0,<7" },
     { name = "sqlite-vec", specifier = ">=0.1.9,<0.2" },
+    { name = "starlette", specifier = ">=0.47,<2" },
     { name = "structlog", specifier = ">=25.4,<26" },
     { name = "typer", specifier = ">=0.16,<1" },
+    { name = "uvicorn", specifier = ">=0.35,<1" },
     { name = "watchdog", specifier = ">=6.0,<7" },
 ]
 

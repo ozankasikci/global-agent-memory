@@ -12,7 +12,7 @@
 | 7 — Embeddings and vectors | Complete | Fake/Ollama, retries, real sqlite-vec, changed-only, model/dimension invalidation, stale pruning, pending jobs, and keyword-fallback tests pass. |
 | 8 — Retrieval and context | Complete | Scoped SQL filtering, RRF, bounded ranking, grouping, lifecycle/cross-project labels, metadata/tags, semantic fallback, keyset cursors, and bounded diverse context tests pass. |
 | 9 — MCP adapter | Complete | Official in-memory SDK client proves exact discovery, every tool/resource/prompt, envelopes, lifecycle/idempotency, working-directory isolation, and outside-Vault rejection. |
-| 10 — Daemon and stdio proxy | Pending | |
+| 10 — Daemon and stdio proxy | Complete | Authenticated localhost Streamable HTTP, SDK host/origin validation, request/connection limits, verified daemon lifecycle, protocol-pure stdio, two-client shared state, stable unavailable errors, and CLI-over-MCP E2E tests pass. |
 | 11 — Obsidian workflow | Pending | |
 | 12 — Watcher and recovery | Pending | |
 | 13 — CLI, packaging, services, doctor | Pending | |
