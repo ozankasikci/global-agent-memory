@@ -9,7 +9,7 @@
 | 4 — SQLite, chunking, and FTS | Complete | Migration, WAL/FK, chunking, full/incremental, exact/phrase/Unicode/metadata search, move/delete, duplicate, invalid-note, and rebuild tests pass. |
 | 5 — Lifecycle and idempotency | Complete | Duplicate/force, patch, approve/reject, reciprocal rollback-safe supersede, archive/hard-delete, notifications, replay, and request-conflict tests pass. |
 | 6 — Project registry and detection | Complete | CRUD/deactivation, aliases, explicit/root/Git-remote/directory/none priority, nested paths, and SSH/HTTPS normalization tests pass. |
-| 7 — Embeddings and vectors | Pending | |
+| 7 — Embeddings and vectors | Complete | Fake/Ollama, retries, real sqlite-vec, changed-only, model/dimension invalidation, stale pruning, pending jobs, and keyword-fallback tests pass. |
 | 8 — Retrieval and context | Pending | |
 | 9 — MCP adapter | Pending | |
 | 10 — Daemon and stdio proxy | Pending | |

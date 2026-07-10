@@ -11,3 +11,4 @@ All notable changes are recorded here.
 - Add disposable SQLite migrations, deterministic structural chunks, FTS5 and metadata retrieval, incremental move/delete handling, conflict quarantine, diagnostics, and rebuild support.
 - Add candidate duplicate detection, explicit section patches, reciprocal supersession with rollback, archive and hard-delete separation, content-free tombstones, change notifications, and durable request-ID replay receipts.
 - Add a normalized project registry with aliases, roots, remotes, organization metadata, deactivation, and priority-ordered working-directory/Git detection.
+- Add optional batched Ollama embeddings, deterministic fakes, sqlite-vec cosine storage, changed-only indexing, model/dimension invalidation, persisted retry jobs, stale-vector pruning, and keyword-only degradation.

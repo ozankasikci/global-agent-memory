@@ -55,6 +55,7 @@ class EmbeddingSettings(BaseModel):
     provider: str = "ollama"
     base_url: str = "http://127.0.0.1:11434"
     model: str = "nomic-embed-text"
+    dimensions: int | None = Field(default=None, ge=1, le=65536)
     batch_size: int = Field(default=32, ge=1, le=512)
 
 
@@ -181,6 +182,7 @@ def load_settings(config_file: Path | None = None, cli_overrides: dict[str, Any]
 def render_config(settings: GlobalMemorySettings) -> str:
     """Render deterministic TOML without serializing secrets."""
     excluded = ", ".join(f'"{item}"' for item in settings.index.excluded_globs)
+    dimensions = f"dimensions = {settings.embeddings.dimensions}\n" if settings.embeddings.dimensions else ""
     return (
         f'vault_path = "{settings.vault_path}"\n'
         f'log_level = "{settings.log_level}"\n\n'
@@ -200,6 +202,7 @@ def render_config(settings: GlobalMemorySettings) -> str:
         "[embeddings]\n"
         f'enabled = {str(settings.embeddings.enabled).lower()}\nprovider = "{settings.embeddings.provider}"\n'
         f'base_url = "{settings.embeddings.base_url}"\nmodel = "{settings.embeddings.model}"\n'
+        f"{dimensions}"
         f"batch_size = {settings.embeddings.batch_size}\n\n"
         "[integrations]\n"
         f"prefer_symlinks = {str(settings.integrations.prefer_symlinks).lower()}\n"

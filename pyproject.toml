@@ -11,11 +11,13 @@ requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [{ name = "Global Memory contributors" }]
 dependencies = [
+  "httpx>=0.28,<1",
   "mcp>=1.12,<2",
   "platformdirs>=4.3,<5",
   "pydantic>=2.11,<3",
   "pydantic-settings>=2.10,<3",
   "pyyaml>=6.0,<7",
+  "sqlite-vec>=0.1.9,<0.2",
   "structlog>=25.4,<26",
   "typer>=0.16,<1",
   "watchdog>=6.0,<7",
@@ -77,4 +79,3 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "ASYNC"]
 python_version = "3.12"
 strict = true
 packages = ["global_memory"]
-

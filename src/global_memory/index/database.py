@@ -90,6 +90,32 @@ CREATE TABLE IF NOT EXISTS mutation_requests (
 );
 """
 
+MIGRATION_2 = """
+CREATE TABLE IF NOT EXISTS embedding_jobs (
+    chunk_id TEXT PRIMARY KEY,
+    provider TEXT NOT NULL,
+    model TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    status TEXT NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    last_error TEXT NULL,
+    next_attempt_at TEXT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(chunk_id) REFERENCES chunks(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS vector_entries (
+    row_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chunk_id TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    model TEXT NOT NULL,
+    dimension INTEGER NOT NULL,
+    content_hash TEXT NOT NULL,
+    collection_key TEXT NOT NULL,
+    UNIQUE(chunk_id, provider, model)
+);
+CREATE INDEX IF NOT EXISTS vector_entries_collection ON vector_entries(collection_key, row_id);
+"""
+
 
 class IndexDatabase:
     """Own one generated SQLite database with mandatory safety pragmas."""
@@ -116,6 +142,13 @@ class IndexDatabase:
                 "BEGIN IMMEDIATE;\n"
                 + MIGRATION_1
                 + "\nINSERT INTO schema_migrations(version, applied_at) VALUES (1, datetime('now'));\nCOMMIT;"
+            )
+            version = 1
+        if version < 2:
+            self.connection.executescript(
+                "BEGIN IMMEDIATE;\n"
+                + MIGRATION_2
+                + "\nINSERT INTO schema_migrations(version, applied_at) VALUES (2, datetime('now'));\nCOMMIT;"
             )
 
     @contextmanager
