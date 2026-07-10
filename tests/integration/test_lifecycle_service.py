@@ -83,7 +83,7 @@ def test_update_section_patch_preserves_other_sections_and_notifies_once(tmp_pat
     )
     assert "## Summary\n\nNew summary." in updated.body
     assert "## Evidence\n\nKeep this." in updated.body
-    assert updated.metadata.model_extra == {"future_property": "preserved"}
+    assert updated.metadata.model_extra and updated.metadata.model_extra["future_property"] == "preserved"
     assert len(changes) == 2
 
     service(tmp_path, NOW + timedelta(minutes=2), changes).update(

@@ -15,7 +15,7 @@ from global_memory.errors import ErrorCode, GlobalMemoryError
 from global_memory.index.chunks import TokenEstimator, approximate_tokens, chunk_markdown
 from global_memory.index.database import IndexDatabase
 from global_memory.vault.markdown import parse_note
-from global_memory.vault.paths import safe_vault_path
+from global_memory.vault.paths import is_managed_memory_path, safe_vault_path
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,9 +62,7 @@ class Indexer:
 
     def _files(self) -> list[Path]:
         return sorted(
-            path
-            for path in self.vault_path.rglob("*.md")
-            if not any(part.startswith(".") for part in path.relative_to(self.vault_path).parts)
+            path for path in self.vault_path.rglob("*.md") if is_managed_memory_path(path.relative_to(self.vault_path))
         )
 
     def full_reindex(self) -> ReindexReport:

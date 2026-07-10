@@ -11,6 +11,7 @@ from global_memory.domain.models import MemoryDraft
 from global_memory.errors import ErrorCode, GlobalMemoryError
 from global_memory.index.database import IndexDatabase
 from global_memory.index.indexer import Indexer
+from global_memory.vault.obsidian import ensure_project_overview, install_obsidian_assets
 from global_memory.vault.repository import VaultRepository
 
 pytestmark = pytest.mark.integration
@@ -128,3 +129,15 @@ def test_invalid_notes_are_isolated_and_recorded(tmp_path: Path) -> None:
         "SELECT status, error_code FROM index_events WHERE path = 'broken.md' ORDER BY id DESC LIMIT 1"
     ).fetchone()
     assert tuple(event) == ("failed", ErrorCode.NOTE_INVALID.value)
+
+
+def test_obsidian_support_assets_are_not_reported_as_invalid_memories(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "README.md").write_text("# Global Memory\n")
+    install_obsidian_assets(vault)
+    ensure_project_overview(vault, "Global Memory")
+
+    report = Indexer(vault, IndexDatabase(tmp_path / "data" / "memory.db")).full_reindex()
+
+    assert report.invalid == 0

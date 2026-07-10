@@ -51,7 +51,7 @@ def test_candidate_create_get_and_stale_update(tmp_path: Path) -> None:
         body="# Changed\n",
     )
     assert updated.body == "# Changed\n"
-    assert updated.metadata.model_extra == {"future": "kept"}
+    assert updated.metadata.model_extra and updated.metadata.model_extra["future"] == "kept"
 
     with pytest.raises(GlobalMemoryError) as caught:
         updated_repo.update(
@@ -152,13 +152,38 @@ def test_lifecycle_operations_route_through_application_service(tmp_path: Path) 
     )
     assert rejected.metadata.status is MemoryStatus.REJECTED
     assert rejected.relative_path.parent.as_posix() == "90 Archive/Rejected"
-    assert rejected.metadata.model_extra == {"lifecycle_reason": "Unverified"}
+    assert rejected.metadata.model_extra and rejected.metadata.model_extra["lifecycle_reason"] == "Unverified"
 
     archived = MemoryService(repository(tmp_path, LATER + timedelta(minutes=2))).archive(
         active.metadata.id, active.version, reason="No longer applicable"
     )
     assert archived.metadata.status is MemoryStatus.ARCHIVED
     assert archived.relative_path.parts[0] == "90 Archive"
+
+
+def test_project_and_supersession_visual_links_survive_lifecycle_moves(tmp_path: Path) -> None:
+    first = MemoryService(repository(tmp_path)).remember(draft())
+    project_link = first.metadata.model_extra["project_link"]
+    active = MemoryService(repository(tmp_path, LATER)).approve(first.metadata.id, first.version)
+    assert active.metadata.model_extra["project_link"] == project_link
+    assert (tmp_path / "vault/20 Projects/Global Memory/Project Overview.md").exists()
+
+    replacement = MemoryService(repository(tmp_path, LATER)).remember(
+        MemoryDraft(
+            title="Safer atomic writes",
+            content="# Safer atomic writes\n",
+            type="decision",
+            scope="project",
+            project="Global Memory",
+        )
+    )
+    result = repository(tmp_path, LATER + timedelta(minutes=1)).supersede(
+        active.metadata.id, replacement.metadata.id, reason="Improved"
+    )
+    old_links = result.old.metadata.model_extra["visual_links"]
+    new_links = result.replacement.metadata.model_extra["visual_links"]
+    assert any(result.replacement.path.stem in link for link in old_links)
+    assert any(result.old.path.stem in link for link in new_links)
 
 
 def test_supersede_second_write_failure_restores_both_originals(

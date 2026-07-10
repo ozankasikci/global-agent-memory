@@ -16,6 +16,9 @@ TYPE_FOLDERS = {
     "session_summary": "Session Summaries",
 }
 
+UNMANAGED_DIRECTORIES = {"Templates", "Dashboards"}
+UNMANAGED_ROOT_FILES = {"README.md"}
+
 
 def safe_component(value: str) -> str:
     """Create a readable path component without separators or traversal."""
@@ -80,3 +83,16 @@ def safe_vault_path(vault: Path, relative: Path) -> Path:
             remediation="Remove traversal or symlink components and use a Vault-relative path.",
         )
     return candidate
+
+
+def is_managed_memory_path(relative: Path) -> bool:
+    """Distinguish canonical memory notes from Obsidian-facing support assets."""
+    if relative.suffix.casefold() != ".md" or not relative.parts:
+        return False
+    if any(part.startswith(".") for part in relative.parts):
+        return False
+    if relative.name in UNMANAGED_ROOT_FILES or relative.parts[0] in UNMANAGED_DIRECTORIES:
+        return False
+    return not (
+        len(relative.parts) >= 3 and relative.parts[0] == "20 Projects" and relative.name == "Project Overview.md"
+    )

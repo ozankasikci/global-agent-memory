@@ -13,7 +13,7 @@
 | 8 — Retrieval and context | Complete | Scoped SQL filtering, RRF, bounded ranking, grouping, lifecycle/cross-project labels, metadata/tags, semantic fallback, keyset cursors, and bounded diverse context tests pass. |
 | 9 — MCP adapter | Complete | Official in-memory SDK client proves exact discovery, every tool/resource/prompt, envelopes, lifecycle/idempotency, working-directory isolation, and outside-Vault rejection. |
 | 10 — Daemon and stdio proxy | Complete | Authenticated localhost Streamable HTTP, SDK host/origin validation, request/connection limits, verified daemon lifecycle, protocol-pure stdio, two-client shared state, stable unavailable errors, and CLI-over-MCP E2E tests pass. |
-| 11 — Obsidian workflow | Pending | |
+| 11 — Obsidian workflow | Complete | Eight idempotent templates, three valid Bases dashboards covering all required views, review docs, project hubs, visual graph links, support-file index exclusion, and lifecycle/link tests pass. |
 | 12 — Watcher and recovery | Pending | |
 | 13 — CLI, packaging, services, doctor | Pending | |
 | 14 — Shared Agent Skill | Pending | |

@@ -9,6 +9,7 @@ from pathlib import Path
 
 from global_memory.config import GlobalMemorySettings, PlatformPaths, render_config
 from global_memory.errors import ErrorCode, GlobalMemoryError
+from global_memory.vault.obsidian import install_obsidian_assets
 
 MANAGED_DIRECTORIES = (
     "00 Inbox/AI Candidates",
@@ -35,6 +36,9 @@ here. Generated databases, vectors, tokens, locks, and logs are stored outside t
 
 AI-created notes enter `00 Inbox/AI Candidates/` for review. Lifecycle changes should use the Global Memory MCP tools
 or CLI so identity, audit history, and indexes remain consistent.
+
+Open [[Dashboards/Global Memory]] for review queues, active knowledge, and lifecycle history. Project-scoped memories
+link to a generated project overview. Existing templates, dashboards, and overview files are never overwritten.
 """
 
 
@@ -86,6 +90,7 @@ def initialize(settings: GlobalMemorySettings, paths: PlatformPaths) -> Initiali
         readme = vault / "README.md"
         if not readme.exists():
             readme.write_text(VAULT_README)
+        install_obsidian_assets(vault)
         paths.config_dir.mkdir(parents=True, exist_ok=True)
         paths.data_dir.mkdir(parents=True, exist_ok=True)
         paths.log_dir.mkdir(parents=True, exist_ok=True)

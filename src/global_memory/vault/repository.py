@@ -23,7 +23,8 @@ from global_memory.domain.models import (
 )
 from global_memory.errors import ErrorCode, GlobalMemoryError
 from global_memory.vault.markdown import parse_note, render_note
-from global_memory.vault.paths import canonical_path, safe_vault_path
+from global_memory.vault.obsidian import ensure_project_overview
+from global_memory.vault.paths import canonical_path, is_managed_memory_path, note_filename, safe_vault_path
 
 
 class VaultRepository:
@@ -38,10 +39,32 @@ class VaultRepository:
 
     def _managed_files(self) -> list[Path]:
         return sorted(
-            path
-            for path in self.vault_path.rglob("*.md")
-            if not any(part.startswith(".") for part in path.relative_to(self.vault_path).parts)
+            path for path in self.vault_path.rglob("*.md") if is_managed_memory_path(path.relative_to(self.vault_path))
         )
+
+    def _with_visual_properties(
+        self, metadata: MemoryMetadata, *, additional_links: list[str] | None = None
+    ) -> MemoryMetadata:
+        values = metadata.model_dump()
+        values["aliases"] = list(dict.fromkeys([metadata.id, *values.get("aliases", [])]))
+        visual_links: list[str] = []
+        if metadata.project:
+            overview = ensure_project_overview(self.vault_path, metadata.project).with_suffix("").as_posix()
+            values["project_link"] = f"[[{overview}]]"
+            visual_links.append(values["project_link"])
+        for reference in metadata.links:
+            if reference.startswith("mem_"):
+                try:
+                    target = self.get(reference)
+                except GlobalMemoryError:
+                    visual_links.append(f"[[{reference}]]")
+                else:
+                    visual_links.append(f"[[{note_filename(target.metadata).removesuffix('.md')}]]")
+            else:
+                visual_links.append(reference if reference.startswith("[[") else f"[[{reference}]]")
+        visual_links.extend(additional_links or [])
+        values["visual_links"] = list(dict.fromkeys(visual_links))
+        return MemoryMetadata.model_validate(values)
 
     def get(self, memory_id: str) -> StoredMemory:
         matches: list[StoredMemory] = []
@@ -113,6 +136,7 @@ class VaultRepository:
             supersedes=[],
             superseded_by=None,
         )
+        metadata = self._with_visual_properties(metadata)
         path = safe_vault_path(self.vault_path, canonical_path(metadata))
         if path.exists():
             raise GlobalMemoryError(
@@ -152,7 +176,7 @@ class VaultRepository:
         now = self._clock()
         if now <= current.metadata.updated_at:
             now = current.metadata.updated_at + timedelta(microseconds=1)
-        updated_metadata = metadata_with_patch(current.metadata, patch, updated_at=now)
+        updated_metadata = self._with_visual_properties(metadata_with_patch(current.metadata, patch, updated_at=now))
         updated_body = current.body if body is None else body
         self._atomic_write(current.path, render_note(updated_metadata, updated_body))
         self._audit("memory_updated", memory_id, current.path, now, fields=sorted(patch))
@@ -185,6 +209,7 @@ class VaultRepository:
             values = updated_metadata.model_dump()
             values["lifecycle_reason"] = reason
             updated_metadata = MemoryMetadata.model_validate(values)
+        updated_metadata = self._with_visual_properties(updated_metadata)
         relative_destination = Path(destination_override) if destination_override else canonical_path(updated_metadata)
         if destination_override and relative_destination.suffix.casefold() != ".md":
             raise GlobalMemoryError(
@@ -248,6 +273,14 @@ class VaultRepository:
         )
         old_metadata = MemoryMetadata.model_validate(old_values)
         replacement_metadata = MemoryMetadata.model_validate(new_values)
+        old_metadata = self._with_visual_properties(
+            old_metadata,
+            additional_links=[f"[[{note_filename(replacement_metadata).removesuffix('.md')}]]"],
+        )
+        replacement_metadata = self._with_visual_properties(
+            replacement_metadata,
+            additional_links=[f"[[{note_filename(old_metadata).removesuffix('.md')}]]"],
+        )
         old_destination = safe_vault_path(self.vault_path, canonical_path(old_metadata))
         replacement_destination = safe_vault_path(self.vault_path, canonical_path(replacement_metadata))
         sources = {old.path: old.path.read_bytes(), replacement.path: replacement.path.read_bytes()}
