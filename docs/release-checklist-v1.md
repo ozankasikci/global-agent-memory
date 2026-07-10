@@ -38,4 +38,16 @@ Status: **Automated acceptance passed; release tag blocked on live client/UI acc
 | `doctor` on release installation | Covered with offline and real-daemon/stdin transport fixtures | Pass (automated) |
 | Critical/high known product bug | No automated critical/high failure remains | Pass |
 
+## Release-machine client inventory
+
+Recorded read-only on 2026-07-11; no client configuration or Vault was changed.
+
+| Client | Discovered version | Live acceptance state |
+| --- | --- | --- |
+| Claude Code | 2.1.185 | Executable works; install/invoke/uninstall remains authorization-gated |
+| Codex | npm wrapper 0.116.0 | `--version` fails with `ENOENT` for the missing `codex-darwin-arm64` native executable |
+| Obsidian | 1.8.10 | Application is installed; visual Vault acceptance remains authorization-gated |
+
+`git remote -v` returns no configured remote in this checkout, so the required remote CI matrix cannot be triggered here.
+
 Do not tag V1 until every awaiting/not-run/blocked live gate above is resolved and the command outputs/client versions are appended without secrets.
