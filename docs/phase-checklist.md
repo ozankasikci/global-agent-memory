@@ -7,7 +7,7 @@
 | 2 — Configuration and Vault initialization | Complete | Precedence, validation, idempotency, token-mode, overwrite-safety, and state-separation tests pass. |
 | 3 — Domain and Markdown repository | Complete | Domain, Markdown, routing, confinement, atomic-write, concurrency, lifecycle-service, and audit tests pass. |
 | 4 — SQLite, chunking, and FTS | Complete | Migration, WAL/FK, chunking, full/incremental, exact/phrase/Unicode/metadata search, move/delete, duplicate, invalid-note, and rebuild tests pass. |
-| 5 — Lifecycle and idempotency | Pending | |
+| 5 — Lifecycle and idempotency | Complete | Duplicate/force, patch, approve/reject, reciprocal rollback-safe supersede, archive/hard-delete, notifications, replay, and request-conflict tests pass. |
 | 6 — Project registry and detection | Pending | |
 | 7 — Embeddings and vectors | Pending | |
 | 8 — Retrieval and context | Pending | |

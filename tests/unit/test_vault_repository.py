@@ -146,7 +146,7 @@ def test_lifecycle_operations_route_through_application_service(tmp_path: Path) 
     assert active.relative_path.parent.as_posix() == "20 Projects/Global Memory/Decisions"
     assert not candidate.path.exists()
 
-    second = MemoryService(repository(tmp_path, LATER)).remember(draft())
+    second = MemoryService(repository(tmp_path, LATER)).remember(draft(), force=True)
     rejected = MemoryService(repository(tmp_path, LATER + timedelta(minutes=1))).reject(
         second.metadata.id, second.version, reason="Unverified"
     )
@@ -159,3 +159,39 @@ def test_lifecycle_operations_route_through_application_service(tmp_path: Path) 
     )
     assert archived.metadata.status is MemoryStatus.ARCHIVED
     assert archived.relative_path.parts[0] == "90 Archive"
+
+
+def test_supersede_second_write_failure_restores_both_originals(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    first = MemoryService(repository(tmp_path)).remember(draft())
+    active = MemoryService(repository(tmp_path, LATER)).approve(first.metadata.id, first.version)
+    replacement = MemoryService(repository(tmp_path, LATER)).remember(
+        MemoryDraft(
+            title="Replacement",
+            content="# Replacement\n",
+            type="decision",
+            scope="project",
+            project="Global Memory",
+        )
+    )
+    old_bytes = active.path.read_bytes()
+    replacement_bytes = replacement.path.read_bytes()
+    real_replace = os.replace
+    calls = 0
+
+    def fail_second_replace(source: Path, destination: Path) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("simulated second write failure")
+        real_replace(source, destination)
+
+    monkeypatch.setattr(os, "replace", fail_second_replace)
+    with pytest.raises(OSError, match="second write"):
+        repository(tmp_path, LATER + timedelta(minutes=1)).supersede(
+            active.metadata.id, replacement.metadata.id, reason="Replacement"
+        )
+
+    assert active.path.read_bytes() == old_bytes
+    assert replacement.path.read_bytes() == replacement_bytes

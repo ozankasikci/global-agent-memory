@@ -139,6 +139,23 @@ class StoredMemory:
         return self.metadata.updated_at.isoformat()
 
 
+@dataclass(frozen=True, slots=True)
+class SupersedeResult:
+    """The reciprocal result of one explicit supersession operation."""
+
+    old: StoredMemory
+    replacement: StoredMemory
+
+
+@dataclass(frozen=True, slots=True)
+class HardDeleteResult:
+    """Safe receipt for an explicit destructive deletion."""
+
+    memory_id: str
+    relative_path: Path
+    hard_deleted: bool = True
+
+
 def metadata_with_patch(metadata: MemoryMetadata, patch: dict[str, Any], *, updated_at: datetime) -> MemoryMetadata:
     """Apply an explicit metadata patch through full invariant validation."""
     values = metadata.model_dump()
