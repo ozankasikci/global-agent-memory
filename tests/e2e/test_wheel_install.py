@@ -20,7 +20,10 @@ def test_fresh_wheel_contains_contract_and_console_entry_points(tmp_path: Path) 
             str(python),
             "-c",
             "from global_memory.mcp.contract import load_discovery; "
-            "assert len(load_discovery()['tools']) == 14; import global_memory.cli",
+            "assert len(load_discovery()['tools']) == 14; "
+            "from global_memory.integrations.manager import integration_root; "
+            "assert (integration_root() / 'skills/global-memory/SKILL.md').is_file(); "
+            "import global_memory.cli",
         ],
         check=True,
     )

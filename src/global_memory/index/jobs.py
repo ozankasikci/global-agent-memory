@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -23,10 +24,18 @@ class JobReport:
 class IndexJobQueue:
     """Durable at-least-once jobs; indexing operations themselves are idempotent."""
 
-    def __init__(self, database: IndexDatabase, indexer: Indexer, *, max_attempts: int = 5) -> None:
+    def __init__(
+        self,
+        database: IndexDatabase,
+        indexer: Indexer,
+        *,
+        max_attempts: int = 5,
+        on_indexed: Callable[[Path], None] | None = None,
+    ) -> None:
         self.database = database
         self.indexer = indexer
         self.max_attempts = max_attempts
+        self.on_indexed = on_indexed
 
     def enqueue(self, relative_path: Path, event_type: str = "upsert") -> bool:
         if not is_managed_memory_path(relative_path):
@@ -122,6 +131,8 @@ class IndexJobQueue:
                 failed += int(terminal)
                 retried += int(not terminal)
             else:
+                if row["event_type"] != "delete" and self.on_indexed is not None:
+                    self.on_indexed(path)
                 self.database.connection.execute(
                     "UPDATE index_jobs SET status='completed', last_error=NULL, next_attempt_at=NULL, updated_at=? "
                     "WHERE path=?",

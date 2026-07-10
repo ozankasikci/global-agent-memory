@@ -23,8 +23,10 @@ from global_memory.application.memory_service import MemoryService
 from global_memory.application.project_service import ProjectService
 from global_memory.domain.models import HardDeleteResult, MemoryDraft, StoredMemory, SupersedeResult
 from global_memory.domain.protocols import MutationRecord
+from global_memory.embeddings.base import EmbeddingProvider
 from global_memory.errors import ErrorCode, GlobalMemoryError
 from global_memory.index.database import IndexDatabase, open_recoverable_database
+from global_memory.index.embedding_indexer import EmbeddingIndexer
 from global_memory.index.indexer import Indexer
 from global_memory.index.jobs import IndexJobQueue
 from global_memory.index.mutations import SQLiteMutationStore
@@ -109,6 +111,8 @@ class ServiceContainer:
     context: ContextPacker
     mutations: SQLiteMutationStore
     vectors: SqliteVecStore
+    embedding_indexer: EmbeddingIndexer
+    embedding_provider: EmbeddingProvider | None
     index_jobs: IndexJobQueue
     transport: str
     vault_name: str
@@ -119,7 +123,14 @@ class ServiceContainer:
         return _MutationGuard(self.mutations)
 
 
-def build_container(vault_path: Path, state_path: Path, *, transport: str = "direct") -> ServiceContainer:
+def build_container(
+    vault_path: Path,
+    state_path: Path,
+    *,
+    transport: str = "direct",
+    embedding_provider: EmbeddingProvider | None = None,
+    embedding_batch_size: int = 32,
+) -> ServiceContainer:
     vault_path.mkdir(parents=True, exist_ok=True)
     state_path.mkdir(parents=True, exist_ok=True)
     opened = open_recoverable_database(state_path / "memory.db")
@@ -136,18 +147,32 @@ def build_container(vault_path: Path, state_path: Path, *, transport: str = "dir
             (json.dumps({"quarantined": opened.recovered_from.name}),),
         )
     mutations = SQLiteMutationStore(database)
+    vectors = SqliteVecStore(database)
+    embedding_indexer = EmbeddingIndexer(database, vectors)
+    if embedding_provider is not None:
+        embedding_indexer.sync(embedding_provider, batch_size=embedding_batch_size)
 
     def on_change(paths: list[str]) -> None:
         for relative in paths:
             indexer.index_path(Path(relative))
+        if embedding_provider is not None:
+            embedding_indexer.sync(embedding_provider, batch_size=embedding_batch_size)
+
+    if embedding_provider is not None:
+
+        def sync_after_index(_path: Path) -> None:
+            embedding_indexer.sync(embedding_provider, batch_size=embedding_batch_size)
+
+        index_jobs.on_indexed = sync_after_index
 
     memory = MemoryService(repository, mutation_store=mutations, on_change=on_change)
     project_registry = SQLiteProjectRegistry(database)
     projects = ProjectService(project_registry)
-    vectors = SqliteVecStore(database)
     search = SearchService(
         database,
         indexer,
+        embedding_provider=embedding_provider,
+        vectors=vectors,
         project_detector=ProjectDetector(project_registry),
         vault_name=vault_path.name,
     )
@@ -164,6 +189,8 @@ def build_container(vault_path: Path, state_path: Path, *, transport: str = "dir
         context=context,
         mutations=mutations,
         vectors=vectors,
+        embedding_indexer=embedding_indexer,
+        embedding_provider=embedding_provider,
         index_jobs=index_jobs,
         transport=transport,
         vault_name=vault_path.name,
@@ -203,12 +230,12 @@ def _status(container: ServiceContainer) -> dict[str, Any]:
         ).fetchone()[0],
         "pending_embedding_jobs": pending,
         "watcher_state": container.watcher_state,
-        "embedding_state": "not_configured",
+        "embedding_state": "configured" if container.embedding_provider is not None else "not_configured",
         "vector_state": "available" if container.vectors.available else "unavailable",
         "duplicate_id_conflicts": duplicates,
         "invalid_note_count": invalid,
         "last_indexing_error": dict(last_error) if last_error else None,
-        "keyword_only": True,
+        "keyword_only": container.embedding_provider is None or pending > 0,
         "transport": container.transport,
     }
 

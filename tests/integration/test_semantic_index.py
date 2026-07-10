@@ -12,6 +12,9 @@ from global_memory.index.database import IndexDatabase
 from global_memory.index.embedding_indexer import EmbeddingIndexer
 from global_memory.index.indexer import Indexer
 from global_memory.index.vectors import SqliteVecStore
+from global_memory.mcp.server import build_container
+from global_memory.projects.models import ProjectDraft
+from global_memory.retrieval.search import SearchRequest
 from global_memory.vault.repository import VaultRepository
 
 pytestmark = pytest.mark.integration
@@ -141,3 +144,29 @@ def test_embedding_retries_are_persisted_backed_off_and_bounded(tmp_path: Path) 
     job = database.connection.execute("SELECT status, attempts, next_attempt_at FROM embedding_jobs").fetchone()
     assert tuple(job) == ("failed", 3, None)
     assert embeddings.sync(failing).failed == 0
+
+
+def test_shared_container_wires_semantics_and_degrades_when_provider_is_offline(tmp_path: Path) -> None:
+    setup_index(tmp_path)
+    failing = FakeEmbeddingProvider(model="offline", dimension=8, available=False)
+
+    container = build_container(
+        tmp_path / "vault",
+        tmp_path / "data",
+        transport="test",
+        embedding_provider=failing,
+    )
+    container.projects.add(ProjectDraft(name="Factory"))
+    page = container.search.search(
+        SearchRequest(query="furnace", project="Factory", mode="hybrid", include_candidates=True)
+    )
+
+    assert page.results
+    assert page.mode_used == "keyword"
+    assert "semantic_unavailable_keyword_fallback" in page.warnings
+    assert (
+        container.database.connection.execute("SELECT COUNT(*) FROM embedding_jobs WHERE status='pending'").fetchone()[
+            0
+        ]
+        == 1
+    )

@@ -8,7 +8,7 @@ import secrets
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import uvicorn
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
@@ -18,6 +18,9 @@ from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from global_memory.embeddings.base import EmbeddingProvider
+from global_memory.embeddings.fake import FakeEmbeddingProvider
+from global_memory.embeddings.ollama import OllamaEmbeddingProvider
 from global_memory.errors import ErrorCode, GlobalMemoryError
 from global_memory.index.watcher import VaultWatcher
 from global_memory.logging import configure_logging, get_logger
@@ -134,9 +137,17 @@ def create_http_app(
     watch: bool = True,
     debounce_ms: int = 500,
     excluded_globs: list[str] | None = None,
+    embedding_provider: EmbeddingProvider | None = None,
+    embedding_batch_size: int = 32,
 ) -> ASGIApp:
     """Create the minimal authenticated MCP + health ASGI application."""
-    container = build_container(vault_path, state_path, transport="streamable-http")
+    container = build_container(
+        vault_path,
+        state_path,
+        transport="streamable-http",
+        embedding_provider=embedding_provider,
+        embedding_batch_size=embedding_batch_size,
+    )
     mcp_server = create_mcp_server(container)
     watcher = VaultWatcher(
         vault_path,
@@ -202,6 +213,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-watch", action="store_true")
     parser.add_argument("--debounce-ms", type=int, default=500)
     parser.add_argument("--exclude", action="append", default=[])
+    parser.add_argument("--embedding-provider", choices=["none", "ollama", "fake"], default="none")
+    parser.add_argument("--embedding-base-url", default="http://127.0.0.1:11434")
+    parser.add_argument("--embedding-model", default="nomic-embed-text")
+    parser.add_argument("--embedding-dimension", type=int)
+    parser.add_argument("--embedding-batch-size", type=int, default=32)
     return parser
 
 
@@ -209,6 +225,24 @@ async def run_daemon(args: argparse.Namespace) -> None:
     configure_logging()
     logger = get_logger()
     token = read_token(args.token_file)
+    embedding_provider: EmbeddingProvider | None = None
+    if args.embedding_provider == "ollama":
+        embedding_provider = OllamaEmbeddingProvider(
+            model=args.embedding_model,
+            base_url=args.embedding_base_url,
+            batch_size=args.embedding_batch_size,
+            dimension=args.embedding_dimension,
+            timeout=1.0,
+            max_retries=0,
+        )
+    elif args.embedding_provider == "fake":
+        embedding_provider = cast(
+            EmbeddingProvider,
+            FakeEmbeddingProvider(
+                model=args.embedding_model,
+                dimension=args.embedding_dimension or 16,
+            ),
+        )
     app = create_http_app(
         vault_path=args.vault,
         state_path=args.state,
@@ -220,6 +254,8 @@ async def run_daemon(args: argparse.Namespace) -> None:
         watch=not args.no_watch,
         debounce_ms=args.debounce_ms,
         excluded_globs=args.exclude,
+        embedding_provider=embedding_provider,
+        embedding_batch_size=args.embedding_batch_size,
     )
     config = uvicorn.Config(
         app,

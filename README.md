@@ -19,3 +19,5 @@ Runtime memory operations will use the MCP path. No client reads the Vault or ge
 See [operations](docs/operations.md) for initialization, daemon/service management, diagnostics, backup/restore, upgrades, and the complete MCP-routed CLI.
 
 Client setup: [Claude Code](docs/claude-code.md) and [Codex](docs/codex.md).
+
+Testing and release status: [testing](docs/testing.md) and [V1 release checklist](docs/release-checklist-v1.md).

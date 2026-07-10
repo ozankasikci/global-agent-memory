@@ -531,6 +531,11 @@ def serve_command(
             no_watch=not settings.index.watch,
             debounce_ms=settings.index.debounce_ms,
             exclude=settings.index.excluded_globs,
+            embedding_provider="ollama" if settings.embeddings.enabled else "none",
+            embedding_base_url=settings.embeddings.base_url,
+            embedding_model=settings.embeddings.model,
+            embedding_dimension=settings.embeddings.dimensions,
+            embedding_batch_size=settings.embeddings.batch_size,
         )
         asyncio.run(run_daemon(arguments))
     except GlobalMemoryError as error:

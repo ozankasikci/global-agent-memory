@@ -93,6 +93,21 @@ def start_daemon(settings: GlobalMemorySettings, paths: PlatformPaths, *, timeou
         command.extend(["--exclude", pattern])
     if not settings.index.watch:
         command.append("--no-watch")
+    if settings.embeddings.enabled:
+        command.extend(
+            [
+                "--embedding-provider",
+                "ollama",
+                "--embedding-base-url",
+                settings.embeddings.base_url,
+                "--embedding-model",
+                settings.embeddings.model,
+                "--embedding-batch-size",
+                str(settings.embeddings.batch_size),
+            ]
+        )
+        if settings.embeddings.dimensions is not None:
+            command.extend(["--embedding-dimension", str(settings.embeddings.dimensions)])
     with log_path.open("a") as log:
         process = subprocess.Popen(
             command,
