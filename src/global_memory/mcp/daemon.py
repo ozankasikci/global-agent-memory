@@ -20,6 +20,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from global_memory.errors import ErrorCode, GlobalMemoryError
 from global_memory.index.watcher import VaultWatcher
+from global_memory.logging import configure_logging, get_logger
 
 from .contract import failure
 from .server import build_container, create_mcp_server
@@ -205,6 +206,8 @@ def _parser() -> argparse.ArgumentParser:
 
 
 async def run_daemon(args: argparse.Namespace) -> None:
+    configure_logging()
+    logger = get_logger()
     token = read_token(args.token_file)
     app = create_http_app(
         vault_path=args.vault,
@@ -226,7 +229,11 @@ async def run_daemon(args: argparse.Namespace) -> None:
         access_log=False,
         limit_concurrency=args.max_connections,
     )
-    await uvicorn.Server(config).serve()
+    logger.info("daemon_starting", host=args.host, port=args.port)
+    try:
+        await uvicorn.Server(config).serve()
+    finally:
+        logger.info("daemon_stopped", host=args.host, port=args.port)
 
 
 def main() -> None:

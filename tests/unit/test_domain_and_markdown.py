@@ -69,6 +69,13 @@ def test_invalid_frontmatter_has_stable_error() -> None:
     assert caught.value.code is ErrorCode.NOTE_INVALID
 
 
+def test_malicious_yaml_constructor_is_inert_and_rejected() -> None:
+    text = "---\nid: !!python/object/apply:os.system ['echo unsafe']\n---\nbody\n"
+    with pytest.raises(GlobalMemoryError) as caught:
+        parse_note(text)
+    assert caught.value.code is ErrorCode.NOTE_INVALID
+
+
 @given(
     title=st.text(min_size=1, max_size=50).filter(lambda value: "\x00" not in value),
     tag=st.text(min_size=1, max_size=20).filter(lambda value: "\x00" not in value),

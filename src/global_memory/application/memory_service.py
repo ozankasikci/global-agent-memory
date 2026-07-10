@@ -22,6 +22,7 @@ from global_memory.domain.models import (
 )
 from global_memory.domain.protocols import MemoryRepository, MutationRecord, MutationStore
 from global_memory.errors import ErrorCode, GlobalMemoryError
+from global_memory.security import reject_probable_secrets
 
 type MutationResult = StoredMemory | SupersedeResult | HardDeleteResult
 type ChangeCallback = Callable[[list[str]], None]
@@ -187,6 +188,7 @@ class MemoryService:
         return duplicates
 
     def remember(self, draft: MemoryDraft, *, request_id: str | None = None, force: bool = False) -> StoredMemory:
+        reject_probable_secrets(draft.title, draft.content, draft.source_ref, *draft.tags, *draft.links)
         payload = {"draft": draft.model_dump(mode="json"), "force": force}
 
         def action() -> MutationResult:
@@ -226,6 +228,11 @@ class MemoryService:
         body: str | None = None,
         section_patch: dict[str, str] | None = None,
     ) -> StoredMemory:
+        reject_probable_secrets(
+            body,
+            *(str(value) for value in (metadata_patch or {}).values()),
+            *(section_patch or {}).values(),
+        )
         if body is not None and section_patch:
             raise GlobalMemoryError(
                 ErrorCode.NOTE_INVALID,

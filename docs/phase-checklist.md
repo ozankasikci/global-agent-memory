@@ -19,5 +19,5 @@
 | 14 — Shared Agent Skill | Complete | Canonical scaffold-validator-clean client-neutral skill covers before-work retrieval, project isolation, search/write/update/lifecycle/completion/security rules, frozen-capability references, examples, and separate skill/contract versions. |
 | 15 — Claude Code integration | Complete | Fake-home symlink/copy install, official user-scope CLI registration adapter, guarded JSON fallback, manifest/backups, optional snippet, status/verify/uninstall, conflict/idempotency, and shared-daemon verification pass; real user config was not mutated. |
 | 16 — Codex integration | Complete | Fake-home symlink/copy install, official CLI registration adapter, marked TOML fallback, manifest/backups, optional AGENTS snippet, status/verify/uninstall, conflict/idempotency, and shared-daemon verification pass; local Codex binary is broken so live acceptance is deferred. |
-| 17 — Security and performance | Pending | |
+| 17 — Security and performance | Complete | Threat model, secret rejection, recursive log redaction, malicious YAML/prompt-injection/traversal/auth/size tests, localhost controls, config ownership safety, and opt-in 10k-note/HTTP/stdio performance budgets pass. |
 | 18 — V1 release acceptance | Pending | |

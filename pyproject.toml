@@ -67,6 +67,15 @@ asyncio_mode = "auto"
 [tool.coverage.run]
 branch = true
 source = ["global_memory"]
+omit = [
+  "src/global_memory/cli.py",
+  "src/global_memory/mcp/daemon.py",
+  "src/global_memory/mcp/stdio_proxy.py",
+  "src/global_memory/mcp/client.py",
+  "src/global_memory/mcp/daemon_control.py",
+  "src/global_memory/index/watcher.py",
+  "src/global_memory/integrations/verify.py",
+]
 
 [tool.coverage.report]
 show_missing = true

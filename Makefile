@@ -1,4 +1,4 @@
-.PHONY: format lint typecheck unit integration contract e2e check contract-generate contract-check
+.PHONY: format lint typecheck unit integration contract e2e performance coverage check contract-generate contract-check
 
 format:
 	uv run ruff format .
@@ -23,6 +23,12 @@ contract:
 e2e:
 	uv run pytest -m e2e
 
+performance:
+	uv run pytest -m performance -s
+
+coverage:
+	uv run pytest tests/unit tests/integration tests/contract --cov=global_memory --cov-report=term --cov-fail-under=85
+
 contract-generate:
 	uv run python scripts/generate_contract.py
 
@@ -30,5 +36,4 @@ contract-check:
 	@tmp=$$(mktemp); cp contracts/mcp/v1/discovery.json $$tmp; \
 	uv run python scripts/generate_contract.py; cmp $$tmp contracts/mcp/v1/discovery.json; rm $$tmp
 
-check: lint typecheck unit integration contract e2e contract-check
-
+check: lint typecheck unit integration contract e2e coverage contract-check
