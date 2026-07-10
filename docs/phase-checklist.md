@@ -11,7 +11,7 @@
 | 6 — Project registry and detection | Complete | CRUD/deactivation, aliases, explicit/root/Git-remote/directory/none priority, nested paths, and SSH/HTTPS normalization tests pass. |
 | 7 — Embeddings and vectors | Complete | Fake/Ollama, retries, real sqlite-vec, changed-only, model/dimension invalidation, stale pruning, pending jobs, and keyword-fallback tests pass. |
 | 8 — Retrieval and context | Complete | Scoped SQL filtering, RRF, bounded ranking, grouping, lifecycle/cross-project labels, metadata/tags, semantic fallback, keyset cursors, and bounded diverse context tests pass. |
-| 9 — MCP adapter | Pending | |
+| 9 — MCP adapter | Complete | Official in-memory SDK client proves exact discovery, every tool/resource/prompt, envelopes, lifecycle/idempotency, working-directory isolation, and outside-Vault rejection. |
 | 10 — Daemon and stdio proxy | Pending | |
 | 11 — Obsidian workflow | Pending | |
 | 12 — Watcher and recovery | Pending | |

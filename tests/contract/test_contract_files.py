@@ -73,7 +73,9 @@ class ContractFilesTest(unittest.TestCase):
             schema = tool["inputSchema"]
             self.assertEqual(schema["type"], "object")
             self.assertFalse(schema["additionalProperties"])
-            self.assertEqual(tool["outputSchema"]["$ref"], "schemas/success-envelope.json")
+            self.assertEqual(tool["outputSchema"]["properties"]["contract_version"]["const"], 1)
+            self.assertEqual(tool["outputSchema"]["properties"]["ok"]["const"], True)
+            self.assertFalse(tool["outputSchema"]["additionalProperties"])
 
     def test_mutations_require_request_ids(self) -> None:
         mutation_names = {

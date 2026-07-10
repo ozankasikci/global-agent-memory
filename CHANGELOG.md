@@ -13,3 +13,4 @@ All notable changes are recorded here.
 - Add a normalized project registry with aliases, roots, remotes, organization metadata, deactivation, and priority-ordered working-directory/Git detection.
 - Add optional batched Ollama embeddings, deterministic fakes, sqlite-vec cosine storage, changed-only indexing, model/dimension invalidation, persisted retry jobs, stale-vector pruning, and keyword-only degradation.
 - Add scoped keyword/semantic/hybrid/metadata retrieval with RRF, explainable bounded adjustments, grouped passages, lifecycle labels, snapshot-bound keyset cursors, and diverse token-budgeted context.
+- Add the complete frozen MCP V1 application adapter with self-contained discovery schemas, all tools/resources/prompts, common envelopes, stable errors, runtime project detection, and official SDK client contract tests.

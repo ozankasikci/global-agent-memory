@@ -264,12 +264,20 @@ class MemoryService:
         expected_updated_at: str | None = None,
         *,
         request_id: str | None = None,
+        destination_override: str | None = None,
     ) -> StoredMemory:
-        payload = {"id": memory_id, "expected_updated_at": expected_updated_at}
+        payload = {
+            "id": memory_id,
+            "expected_updated_at": expected_updated_at,
+            "destination_override": destination_override,
+        }
 
         def action() -> MutationResult:
             approved = self._repository.change_status(
-                memory_id, MemoryStatus.ACTIVE, expected_updated_at=expected_updated_at
+                memory_id,
+                MemoryStatus.ACTIVE,
+                expected_updated_at=expected_updated_at,
+                destination_override=destination_override,
             )
             self._notify([approved])
             return approved

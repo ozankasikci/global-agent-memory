@@ -38,6 +38,7 @@ dev = [
   "pytest-cov>=6.2,<7",
   "ruff>=0.12,<1",
   "types-pyyaml>=6.0,<7",
+  "types-jsonschema>=4.24,<5",
 ]
 
 [tool.hatch.build.targets.wheel]

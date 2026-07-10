@@ -20,6 +20,19 @@ PROJECT_FIELDS = {
     "verbose": {"type": "boolean", "default": False},
 }
 
+SUCCESS_OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "contract_version": {"const": 1},
+        "ok": {"const": True},
+        "data": {},
+        "warnings": {"type": "array", "items": {"type": "string"}},
+        "diagnostics": {"type": ["object", "null"]},
+    },
+    "required": ["contract_version", "ok", "data", "warnings", "diagnostics"],
+    "additionalProperties": False,
+}
+
 
 def obj(
     properties: dict[str, Any],
@@ -43,7 +56,7 @@ def tool(name: str, description: str, schema: dict[str, Any]) -> dict[str, Any]:
         "name": name,
         "description": description,
         "inputSchema": schema,
-        "outputSchema": {"$ref": "schemas/success-envelope.json"},
+        "outputSchema": SUCCESS_OUTPUT_SCHEMA,
         "contract_version": 1,
     }
 
@@ -387,16 +400,7 @@ PROMPTS = [
 SUCCESS_SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://global-memory.local/contracts/mcp/v1/schemas/success-envelope.json",
-    "type": "object",
-    "properties": {
-        "contract_version": {"const": 1},
-        "ok": {"const": True},
-        "data": {},
-        "warnings": {"type": "array", "items": {"type": "string"}},
-        "diagnostics": {"type": ["object", "null"]},
-    },
-    "required": ["contract_version", "ok", "data", "warnings", "diagnostics"],
-    "additionalProperties": False,
+    **SUCCESS_OUTPUT_SCHEMA,
 }
 
 ERROR_CODES = [

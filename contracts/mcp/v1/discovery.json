@@ -320,7 +320,36 @@
       },
       "name": "memory_search",
       "outputSchema": {
-        "$ref": "schemas/success-envelope.json"
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
       }
     },
     {
@@ -381,7 +410,36 @@
       },
       "name": "memory_context",
       "outputSchema": {
-        "$ref": "schemas/success-envelope.json"
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
       }
     },
     {
@@ -405,7 +463,36 @@
       },
       "name": "memory_get",
       "outputSchema": {
-        "$ref": "schemas/success-envelope.json"
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
       }
     },
     {
@@ -507,7 +594,36 @@
       },
       "name": "memory_remember",
       "outputSchema": {
-        "$ref": "schemas/success-envelope.json"
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
       }
     },
     {
@@ -573,7 +689,36 @@
       },
       "name": "memory_update",
       "outputSchema": {
-        "$ref": "schemas/success-envelope.json"
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
       }
     },
     {
@@ -614,7 +759,36 @@
       },
       "name": "memory_approve",
       "outputSchema": {
-        "$ref": "schemas/success-envelope.json"
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
       }
     },
     {
@@ -654,7 +828,36 @@
       },
       "name": "memory_reject",
       "outputSchema": {
-        "$ref": "schemas/success-envelope.json"
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
       }
     },
     {
@@ -710,7 +913,36 @@
       },
       "name": "memory_supersede",
       "outputSchema": {
-        "$ref": "schemas/success-envelope.json"
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
       }
     },
     {
@@ -748,7 +980,36 @@
       },
       "name": "memory_archive",
       "outputSchema": {
-        "$ref": "schemas/success-envelope.json"
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
       }
     },
     {
@@ -767,7 +1028,36 @@
       },
       "name": "memory_status",
       "outputSchema": {
-        "$ref": "schemas/success-envelope.json"
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
       }
     },
     {
@@ -803,7 +1093,36 @@
       },
       "name": "memory_reindex",
       "outputSchema": {
-        "$ref": "schemas/success-envelope.json"
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
       }
     },
     {
@@ -823,7 +1142,36 @@
       },
       "name": "memory_open",
       "outputSchema": {
-        "$ref": "schemas/success-envelope.json"
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
       }
     },
     {
@@ -882,7 +1230,36 @@
       },
       "name": "memory_projects",
       "outputSchema": {
-        "$ref": "schemas/success-envelope.json"
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
       }
     },
     {
@@ -937,7 +1314,36 @@
       },
       "name": "memory_tags",
       "outputSchema": {
-        "$ref": "schemas/success-envelope.json"
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
       }
     }
   ]

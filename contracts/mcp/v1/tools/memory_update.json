@@ -61,6 +61,35 @@
   },
   "name": "memory_update",
   "outputSchema": {
-    "$ref": "schemas/success-envelope.json"
+    "additionalProperties": false,
+    "properties": {
+      "contract_version": {
+        "const": 1
+      },
+      "data": {},
+      "diagnostics": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "ok": {
+        "const": true
+      },
+      "warnings": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "contract_version",
+      "ok",
+      "data",
+      "warnings",
+      "diagnostics"
+    ],
+    "type": "object"
   }
 }

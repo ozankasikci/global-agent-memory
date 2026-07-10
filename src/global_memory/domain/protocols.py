@@ -49,6 +49,7 @@ class MemoryRepository(Protocol):
         expected_updated_at: str | None = None,
         reason: str | None = None,
         superseded_by: str | None = None,
+        destination_override: str | None = None,
     ) -> StoredMemory: ...
 
     def supersede(self, old_id: str, replacement_id: str, *, reason: str) -> SupersedeResult: ...

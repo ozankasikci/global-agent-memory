@@ -166,6 +166,7 @@ class VaultRepository:
         expected_updated_at: str | None = None,
         reason: str | None = None,
         superseded_by: str | None = None,
+        destination_override: str | None = None,
     ) -> StoredMemory:
         """Validate, persist, and canonically route one explicit lifecycle transition."""
         current = self.get(memory_id)
@@ -184,7 +185,13 @@ class VaultRepository:
             values = updated_metadata.model_dump()
             values["lifecycle_reason"] = reason
             updated_metadata = MemoryMetadata.model_validate(values)
-        destination = safe_vault_path(self.vault_path, canonical_path(updated_metadata))
+        relative_destination = Path(destination_override) if destination_override else canonical_path(updated_metadata)
+        if destination_override and relative_destination.suffix.casefold() != ".md":
+            raise GlobalMemoryError(
+                ErrorCode.NOTE_INVALID,
+                "The destination override must be a Vault-relative Markdown path.",
+            )
+        destination = safe_vault_path(self.vault_path, relative_destination)
         rendered = render_note(updated_metadata, current.body)
         if destination == current.path:
             self._atomic_write(destination, rendered)
