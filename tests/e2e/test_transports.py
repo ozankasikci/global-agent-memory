@@ -8,6 +8,7 @@ import sys
 import time
 from contextlib import contextmanager
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import httpx
 import pytest
@@ -15,6 +16,9 @@ from anyio import run_process
 from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 from mcp.client.streamable_http import streamable_http_client
+
+from global_memory.application.diagnostics_service import run_diagnostics
+from global_memory.config import EmbeddingSettings, GlobalMemorySettings, MCPSettings, PlatformPaths
 
 pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 
@@ -201,6 +205,31 @@ async def test_cli_runtime_status_calls_the_mcp_daemon(tmp_path: Path) -> None:
         assert envelope["data"]["transport"] == "streamable-http"
 
 
+async def test_subprocess_cli_memory_lifecycle_uses_mcp(tmp_path: Path) -> None:
+    with daemon(tmp_path) as (_, endpoint, _token, token_file):
+        common = ["--endpoint", endpoint, "--token-file", str(token_file)]
+        remembered = await run_process(
+            [
+                sys.executable,
+                "-m",
+                "global_memory.cli",
+                "remember",
+                "CLI memory",
+                "Created through the MCP CLI.",
+                "--type",
+                "fact",
+                "--scope",
+                "global",
+                *common,
+            ]
+        )
+        created = json.loads(remembered.stdout)["data"]
+        fetched = await run_process(
+            [sys.executable, "-m", "global_memory.cli", "get", created["metadata"]["id"], *common]
+        )
+        assert json.loads(fetched.stdout)["data"]["body"] == "Created through the MCP CLI."
+
+
 async def test_watcher_indexes_rapid_external_obsidian_saves(tmp_path: Path) -> None:
     with daemon(tmp_path) as (_, endpoint, token, _token_file):
         client, transport, session = await http_session(endpoint, token)
@@ -232,6 +261,29 @@ async def test_watcher_indexes_rapid_external_obsidian_saves(tmp_path: Path) -> 
                 raise AssertionError("watcher did not index the final debounced save")
         finally:
             await close_http_session(client, transport, session)
+
+
+async def test_doctor_verifies_direct_and_stdio_mcp_connectivity(tmp_path: Path) -> None:
+    with daemon(tmp_path) as (_, endpoint, _token, token_file):
+        port = urlsplit(endpoint).port
+        assert port is not None
+        settings = GlobalMemorySettings(
+            vault_path=tmp_path / "vault",
+            mcp=MCPSettings(port=port),
+            embeddings=EmbeddingSettings(enabled=False),
+        )
+        paths = PlatformPaths(
+            config_dir=tmp_path,
+            data_dir=tmp_path / "state",
+            log_dir=tmp_path / "logs",
+            runtime_dir=tmp_path / "run",
+        )
+        assert paths.auth_token == token_file
+        report = await run_diagnostics(settings, paths)
+        transport = {check.name: check.status for check in report.checks}
+        assert transport["daemon_readiness"] == "pass"
+        assert transport["direct_mcp_discovery"] == "pass"
+        assert transport["stdio_proxy"] == "pass"
 
 
 async def test_stdio_proxy_reports_daemon_unavailable_with_stable_error(tmp_path: Path) -> None:

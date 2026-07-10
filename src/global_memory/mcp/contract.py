@@ -12,7 +12,10 @@ CONTRACT_VERSION = 1
 
 
 def contract_root() -> Path:
-    return Path(__file__).resolve().parents[3] / "contracts" / "mcp" / "v1"
+    repository = Path(__file__).resolve().parents[3] / "contracts" / "mcp" / "v1"
+    if repository.is_dir():
+        return repository
+    return Path(__file__).resolve().parents[1] / "_contract" / "mcp" / "v1"
 
 
 def load_discovery() -> dict[str, Any]:
