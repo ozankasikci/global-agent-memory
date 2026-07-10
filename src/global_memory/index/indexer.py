@@ -28,6 +28,7 @@ class ReindexReport:
 
 @dataclass(frozen=True, slots=True)
 class KeywordResult:
+    chunk_id: str
     memory_id: str
     title: str
     path: str
@@ -239,6 +240,11 @@ class Indexer:
         scopes: list[str] | None = None,
         types: list[str] | None = None,
         statuses: list[str] | None = None,
+        tags: list[str] | None = None,
+        applicable_project: str | None = None,
+        cross_project: bool = False,
+        include_archive_scope: bool = False,
+        apply_default_scope: bool = False,
         limit: int = 10,
     ) -> list[KeywordResult]:
         if re.fullmatch(r"mem_[A-Za-z0-9_-]+", query):
@@ -260,10 +266,21 @@ class Indexer:
             if selected:
                 conditions.append(f"{column} IN ({','.join('?' for _ in selected)})")
                 parameters.extend(selected)
+        for tag in tags or []:
+            conditions.append("EXISTS (SELECT 1 FROM json_each(d.metadata_json, '$.tags') WHERE value = ?)")
+            parameters.append(tag)
+        if not cross_project and (apply_default_scope or applicable_project is not None):
+            shared = ["d.scope IN ('global', 'organization')"]
+            if applicable_project is not None:
+                shared.append("(d.scope = 'project' AND d.project = ?)")
+                parameters.append(applicable_project)
+            if include_archive_scope:
+                shared.append("d.scope = 'archive'")
+            conditions.append(f"({' OR '.join(shared)})")
         parameters.append(max(1, min(limit, 100)))
         rows = self.database.connection.execute(
             f"""
-            SELECT d.*, c.content, c.heading_path, bm25(chunks_fts) AS rank
+            SELECT d.*, c.id AS chunk_id, c.content, c.heading_path, bm25(chunks_fts) AS rank
             FROM chunks_fts
             JOIN chunks c ON c.id = chunks_fts.chunk_id
             JOIN documents d ON d.id = c.document_id
@@ -275,6 +292,7 @@ class Indexer:
         ).fetchall()
         return [
             KeywordResult(
+                chunk_id=row["chunk_id"],
                 memory_id=row["id"],
                 title=row["title"],
                 path=row["path"],
@@ -320,7 +338,7 @@ class Indexer:
         parameters.append(max(1, min(limit, 100)))
         rows = self.database.connection.execute(
             f"""
-            SELECT d.*, c.content, c.heading_path
+            SELECT d.*, c.id AS chunk_id, c.content, c.heading_path
             FROM documents d
             JOIN chunks c ON c.document_id = d.id
             WHERE {" AND ".join(conditions)}
@@ -331,6 +349,7 @@ class Indexer:
         ).fetchall()
         return [
             KeywordResult(
+                chunk_id=row["chunk_id"],
                 memory_id=row["id"],
                 title=row["title"],
                 path=row["path"],

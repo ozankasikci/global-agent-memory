@@ -10,7 +10,7 @@
 | 5 — Lifecycle and idempotency | Complete | Duplicate/force, patch, approve/reject, reciprocal rollback-safe supersede, archive/hard-delete, notifications, replay, and request-conflict tests pass. |
 | 6 — Project registry and detection | Complete | CRUD/deactivation, aliases, explicit/root/Git-remote/directory/none priority, nested paths, and SSH/HTTPS normalization tests pass. |
 | 7 — Embeddings and vectors | Complete | Fake/Ollama, retries, real sqlite-vec, changed-only, model/dimension invalidation, stale pruning, pending jobs, and keyword-fallback tests pass. |
-| 8 — Retrieval and context | Pending | |
+| 8 — Retrieval and context | Complete | Scoped SQL filtering, RRF, bounded ranking, grouping, lifecycle/cross-project labels, metadata/tags, semantic fallback, keyset cursors, and bounded diverse context tests pass. |
 | 9 — MCP adapter | Pending | |
 | 10 — Daemon and stdio proxy | Pending | |
 | 11 — Obsidian workflow | Pending | |
