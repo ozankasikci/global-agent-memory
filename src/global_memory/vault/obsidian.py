@@ -46,6 +46,7 @@ views:
     filters:
       and:
         - 'status == "candidate"'
+        - 'file.inFolder("00 Inbox/AI Candidates")'
     order: [file.name, id, project, type, confidence, updated_at]
   - type: table
     name: Rejected candidates

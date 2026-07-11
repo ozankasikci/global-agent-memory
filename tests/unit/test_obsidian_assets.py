@@ -51,6 +51,9 @@ def test_initialization_installs_valid_templates_bases_and_review_workflow(tmp_p
         base = yaml.safe_load((vault / "Dashboards" / name).read_text())
         assert "properties" in base and "views" in base
         view_names.update(view["name"] for view in base["views"])
+        if name == "Review Queue.base":
+            candidate_view = next(view for view in base["views"] if view["name"] == "AI candidates")
+            assert 'file.inFolder("00 Inbox/AI Candidates")' in candidate_view["filters"]["and"]
     assert view_names == {
         "AI candidates",
         "Active decisions",
