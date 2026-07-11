@@ -102,7 +102,8 @@ def _database_checks(paths: PlatformPaths) -> list[DiagnosticCheck]:
         ).fetchone()[0]
         unresolved = connection.execute(
             "SELECT COUNT(DISTINCT d.project) FROM documents d LEFT JOIN projects p "
-            "ON p.canonical_name=d.project AND p.active=1 WHERE d.project IS NOT NULL AND p.id IS NULL"
+            "ON p.canonical_name=d.project AND p.active=1 "
+            "WHERE d.deleted_at IS NULL AND d.project IS NOT NULL AND p.id IS NULL"
         ).fetchone()[0]
         connection.close()
         checks.append(

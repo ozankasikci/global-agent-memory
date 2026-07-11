@@ -59,6 +59,26 @@ async def test_doctor_inspects_healthy_generated_state_and_reports_invalid_memor
     )
     initialize(settings, paths)
     database = IndexDatabase(paths.database)
+    database.connection.execute(
+        "INSERT INTO documents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            "mem_deleted_fixture",
+            "deleted.md",
+            "Deleted verifier fixture",
+            "fact",
+            "project",
+            "deactivated-verifier-project",
+            "active",
+            0.5,
+            0.5,
+            "2026-07-11T00:00:00+00:00",
+            "2026-07-11T00:00:00+00:00",
+            "deleted",
+            "{}",
+            "2026-07-11T00:00:00+00:00",
+            "2026-07-11T00:00:01+00:00",
+        ),
+    )
     database.close()
     invalid = settings.vault_path / "10 Global/Reusable Knowledge/invalid.md"
     invalid.write_text("# missing managed frontmatter\n")
