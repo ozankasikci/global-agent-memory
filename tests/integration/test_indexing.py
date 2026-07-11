@@ -51,6 +51,8 @@ def test_migrations_wal_full_index_filters_and_rebuild_equivalence(tmp_path: Pat
     assert indexer.keyword_search("日本語")[0].memory_id == note.metadata.id
     assert indexer.keyword_search(note.metadata.id)[0].memory_id == note.metadata.id
     assert indexer.keyword_search('"Exact VERSION_CONFLICT"')[0].memory_id == note.metadata.id
+    assert indexer.keyword_search("Handle Exact VERSION_CONFLICT safely")[0].memory_id == note.metadata.id
+    assert not indexer.keyword_search('"missing VERSION_CONFLICT"')
     assert indexer.metadata_search(project="Global Memory", types=["decision"], tags=["sqlite"])[0].memory_id == (
         note.metadata.id
     )

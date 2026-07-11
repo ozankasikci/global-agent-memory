@@ -252,7 +252,8 @@ class Indexer:
         tokens = re.findall(r"[\w-]+", query, flags=re.UNICODE)
         if not tokens:
             return []
-        if len(query) >= 2 and query.startswith('"') and query.endswith('"'):
+        phrase_query = len(query) >= 2 and query.startswith('"') and query.endswith('"')
+        if phrase_query:
             phrase = query[1:-1].replace('"', '""')
             match = f'"{phrase}"'
         else:
@@ -278,8 +279,7 @@ class Indexer:
                 shared.append("d.scope = 'archive'")
             conditions.append(f"({' OR '.join(shared)})")
         parameters.append(max(1, min(limit, 100)))
-        rows = self.database.connection.execute(
-            f"""
+        sql = f"""
             SELECT d.*, c.id AS chunk_id, c.content, c.heading_path, bm25(chunks_fts) AS rank
             FROM chunks_fts
             JOIN chunks c ON c.id = chunks_fts.chunk_id
@@ -287,9 +287,29 @@ class Indexer:
             WHERE {" AND ".join(conditions)}
             ORDER BY rank ASC, d.updated_at DESC, d.id ASC, c.ordinal ASC
             LIMIT ?
-            """,
-            parameters,
-        ).fetchall()
+            """
+        rows = self.database.connection.execute(sql, parameters).fetchall()
+        if not rows and not phrase_query and len(tokens) > 1:
+            relaxed_tokens = [
+                token
+                for token in tokens
+                if len(token) > 2
+                and token.casefold()
+                not in {
+                    "and",
+                    "are",
+                    "for",
+                    "from",
+                    "into",
+                    "the",
+                    "this",
+                    "that",
+                    "with",
+                }
+            ]
+            if relaxed_tokens:
+                parameters[0] = " OR ".join(f'"{token.replace(chr(34), chr(34) * 2)}"' for token in relaxed_tokens)
+                rows = self.database.connection.execute(sql, parameters).fetchall()
         return [
             KeywordResult(
                 chunk_id=row["chunk_id"],

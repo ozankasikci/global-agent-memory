@@ -234,7 +234,9 @@ def test_context_is_diverse_bounded_sourced_and_labels_untrusted_text(tmp_path: 
     )
     indexer.index_path(Path("notes/mem_injection.md"))
     service = SearchService(database, indexer)
-    bundle = ContextPacker(service).pack(task="conveyor", project="Alpha", token_budget=180)
+    bundle = ContextPacker(service).pack(
+        task="Plan safe conveyor behavior before implementation", project="Alpha", token_budget=180
+    )
     assert bundle.estimated_tokens <= 180
     assert len({item.type for item in bundle.items}) >= 2
     assert all(item.memory_id and item.path and item.content_is_untrusted for item in bundle.items)
