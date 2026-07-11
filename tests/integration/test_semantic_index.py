@@ -14,7 +14,7 @@ from global_memory.index.embedding_indexer import EmbeddingIndexer
 from global_memory.index.indexer import Indexer
 from global_memory.index.vectors import SqliteVecStore
 from global_memory.mcp.daemon import retry_pending_embeddings
-from global_memory.mcp.server import build_container
+from global_memory.mcp.server import _status, build_container
 from global_memory.projects.models import ProjectDraft
 from global_memory.retrieval.search import SearchRequest
 from global_memory.vault.repository import VaultRepository
@@ -175,6 +175,16 @@ def test_shared_container_wires_semantics_and_degrades_when_provider_is_offline(
         ]
         == 1
     )
+
+    for _ in range(4):
+        container.database.connection.execute("UPDATE embedding_jobs SET next_attempt_at=NULL")
+        container.embedding_indexer.sync(failing)
+
+    job = container.database.connection.execute("SELECT status, attempts FROM embedding_jobs").fetchone()
+    status = _status(container)
+    assert tuple(job) == ("failed", 5)
+    assert status["pending_embedding_jobs"] == 0
+    assert status["keyword_only"] is True
 
 
 @pytest.mark.asyncio

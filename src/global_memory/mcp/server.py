@@ -205,6 +205,9 @@ def _status(container: ServiceContainer) -> dict[str, Any]:
     pending = container.database.connection.execute(
         "SELECT COUNT(*) FROM embedding_jobs WHERE status='pending'"
     ).fetchone()[0]
+    unresolved_embeddings = container.database.connection.execute(
+        "SELECT COUNT(*) FROM embedding_jobs WHERE status IN ('pending', 'failed')"
+    ).fetchone()[0]
     invalid = container.database.connection.execute(
         "SELECT COUNT(DISTINCT path) FROM index_events WHERE error_code='NOTE_INVALID'"
     ).fetchone()[0]
@@ -235,7 +238,9 @@ def _status(container: ServiceContainer) -> dict[str, Any]:
         "duplicate_id_conflicts": duplicates,
         "invalid_note_count": invalid,
         "last_indexing_error": dict(last_error) if last_error else None,
-        "keyword_only": container.embedding_provider is None or pending > 0,
+        "keyword_only": container.embedding_provider is None
+        or not container.vectors.available
+        or unresolved_embeddings > 0,
         "transport": container.transport,
     }
 
