@@ -224,6 +224,42 @@ def status_command(
     _call_runtime("memory_status", {}, endpoint=endpoint, token_file=token_file, config_file=config_file)
 
 
+@app.command("dashboard")
+def dashboard_command(
+    no_open: Annotated[
+        bool, typer.Option("--no-open", help="Issue a secure dashboard URL without opening it.")
+    ] = False,
+    endpoint: Annotated[str | None, typer.Option("--endpoint", help="Streamable HTTP MCP endpoint.")] = None,
+    token_file: Annotated[Path | None, typer.Option("--token-file", help="Protected daemon token file.")] = None,
+    config_file: Annotated[Path | None, typer.Option("--config", help="Configuration used for defaults.")] = None,
+) -> None:
+    """Open the authenticated local dashboard through the shared MCP daemon."""
+    try:
+        resolved_endpoint, resolved_token = _runtime_target(endpoint, token_file, config_file)
+        envelope = asyncio.run(
+            call_http_tool(
+                resolved_endpoint,
+                resolved_token,
+                "memory_dashboard_open",
+                {"open_browser": not no_open},
+            )
+        )
+    except GlobalMemoryError as error:
+        _fail(error)
+    if not envelope.get("ok"):
+        error_payload = envelope.get("error") or {}
+        _fail(
+            GlobalMemoryError(
+                ErrorCode(str(error_payload.get("code", ErrorCode.INTERNAL_ERROR.value))),
+                str(error_payload.get("message", "The dashboard could not be opened.")),
+                remediation=error_payload.get("remediation"),
+            )
+        )
+    data = envelope["data"]
+    action = "Dashboard opened" if data.get("opened") else "Dashboard URL issued"
+    typer.echo(f"{action}: {data['url']}")
+
+
 @app.command("search")
 def search_command(
     query: Annotated[str, typer.Argument(help="Text to search for.")],

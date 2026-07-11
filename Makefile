@@ -1,4 +1,4 @@
-.PHONY: format lint typecheck unit integration contract e2e performance coverage check contract-generate contract-check
+.PHONY: format lint typecheck dashboard-check unit integration contract e2e performance coverage check contract-generate contract-check
 
 format:
 	uv run ruff format .
@@ -10,6 +10,9 @@ lint:
 
 typecheck:
 	uv run mypy
+
+dashboard-check:
+	cd dashboard && npm run lint && npm run build
 
 unit:
 	uv run pytest tests/unit
@@ -36,4 +39,4 @@ contract-check:
 	@tmp=$$(mktemp); cp contracts/mcp/v1/discovery.json $$tmp; \
 	uv run python scripts/generate_contract.py; cmp $$tmp contracts/mcp/v1/discovery.json; rm $$tmp
 
-check: lint typecheck unit integration contract e2e coverage contract-check
+check: lint typecheck dashboard-check unit integration contract e2e coverage contract-check

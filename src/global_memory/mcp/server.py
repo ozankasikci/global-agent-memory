@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, is_dataclass
 from datetime import date, datetime
 from enum import Enum
@@ -117,6 +118,7 @@ class ServiceContainer:
     transport: str
     vault_name: str
     watcher_state: str = "not_started"
+    dashboard_launcher: Callable[[bool], dict[str, Any]] | None = None
 
     @property
     def guard(self) -> _MutationGuard:
@@ -453,6 +455,14 @@ def _dispatch(container: ServiceContainer, name: str, arguments: dict[str, Any])
                 f"obsidian://open?vault={quote(container.vault_name, safe='')}&file={quote(path, safe='')}"
             ),
         }, diagnostics
+    if name == "memory_dashboard_open":
+        if container.dashboard_launcher is None:
+            raise GlobalMemoryError(
+                ErrorCode.DAEMON_UNAVAILABLE,
+                "The dashboard is available only through the shared HTTP daemon.",
+                remediation="Start the daemon and call memory_dashboard_open through its configured MCP transport.",
+            )
+        return container.dashboard_launcher(bool(arguments.get("open_browser", True))), diagnostics
     if name == "memory_projects":
         return _project_action(container, arguments), diagnostics
     if name == "memory_tags":

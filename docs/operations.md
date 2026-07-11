@@ -40,7 +40,17 @@ The command refuses to replace an unmanaged service file, then loads/enables the
 
 ## Runtime commands
 
-`status`, `search`, `context`, `remember`, `get`, `approve`, `reject`, `update`, `supersede`, `archive`, `reindex`, and every `project` command call the shared daemon through MCP. Use `--endpoint`, `--token-file`, and `--config` to override platform defaults. Use `--show-completion` or `--install-completion` for shell completion.
+`status`, `dashboard`, `search`, `context`, `remember`, `get`, `approve`, `reject`, `update`, `supersede`, `archive`, `reindex`, and every `project` command call the shared daemon through MCP. Use `--endpoint`, `--token-file`, and `--config` to override platform defaults. Use `--show-completion` or `--install-completion` for shell completion.
+
+## Review dashboard
+
+```shell
+global-memory dashboard
+# Print a single-use URL without opening a browser:
+global-memory dashboard --no-open
+```
+
+The dashboard provides project overview, one-at-a-time candidate review and editing, duplicate/conflict comparison, memory search, project switching, system status, reindexing, timestamped Vault backups, and links to canonical Markdown. The launch URL expires after 60 seconds, can be exchanged only once, and creates a local HttpOnly session. Do not share the URL. The UI is served only by the localhost daemon and its private JSON endpoints are not a public integration contract.
 
 ## Diagnose and recover
 

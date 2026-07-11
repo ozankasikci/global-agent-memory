@@ -134,6 +134,9 @@ class SearchService:
         state = "\n".join(
             f"{row['id']}:{row['content_hash']}:{row['indexed_at']}:{row['deleted_at'] or ''}" for row in rows
         )
+        # Recency scoring advances at UTC-day boundaries. Include that clock
+        # boundary so a pagination cursor cannot silently span two score sets.
+        state = f"{state}\nscore-date:{datetime.now(UTC).date().isoformat()}"
         return hashlib.sha256(state.encode()).hexdigest()[:20]
 
     def _resolve_project(self, request: SearchRequest) -> tuple[str | None, str, tuple[str, ...]]:
@@ -307,9 +310,7 @@ class SearchService:
             adjustment -= 0.01
             reasons.append("session_summary_penalty")
         try:
-            age_days = max(
-                0.0, (datetime.now(UTC) - datetime.fromisoformat(candidate.updated_at)).total_seconds() / 86400
-            )
+            age_days = max(0, (datetime.now(UTC).date() - datetime.fromisoformat(candidate.updated_at).date()).days)
             recency = max(0.0, 1.0 - min(age_days, 365.0) / 365.0) * 0.005
             adjustment += recency
             reasons.append("recency_adjustment")

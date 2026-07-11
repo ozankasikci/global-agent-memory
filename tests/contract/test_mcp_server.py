@@ -53,6 +53,23 @@ async def test_official_client_discovery_exactly_matches_frozen_v1(tmp_path: Pat
             ]
 
 
+async def test_dashboard_open_uses_daemon_launcher(tmp_path: Path) -> None:
+    container = build_container(tmp_path / "vault", tmp_path / "state", transport="direct")
+    calls: list[bool] = []
+
+    def launch(open_browser: bool) -> dict[str, object]:
+        calls.append(open_browser)
+        return {"url": "http://127.0.0.1:8765/ui/session?ticket=test", "opened": open_browser, "expires_in_seconds": 60}
+
+    container.dashboard_launcher = launch
+    server = create_mcp_server(container)
+    async with create_connected_server_and_client_session(server) as session:
+        data = await call(session, "memory_dashboard_open", {"open_browser": False})
+        assert data["url"].startswith("http://127.0.0.1:8765/ui/session")
+        assert data["opened"] is False
+        assert calls == [False]
+
+
 async def test_every_mandatory_tool_through_official_client(tmp_path: Path) -> None:
     container = build_container(tmp_path / "vault", tmp_path / "state", transport="direct")
     server = create_mcp_server(container)

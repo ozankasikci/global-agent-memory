@@ -48,3 +48,26 @@ def test_every_runtime_cli_command_routes_to_a_frozen_mcp_tool(monkeypatch: pyte
         "memory_reindex",
         "memory_projects",
     }
+
+
+def test_dashboard_command_routes_through_mcp_and_reports_launch_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[str, dict[str, Any]]] = []
+
+    async def call(_endpoint, _token, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        calls.append((name, arguments))
+        return {
+            "ok": True,
+            "data": {
+                "url": "http://127.0.0.1:8765/ui/session?ticket=test",
+                "opened": True,
+                "expires_in_seconds": 60,
+            },
+        }
+
+    monkeypatch.setattr(cli, "_runtime_target", lambda *_args: ("http://localhost/mcp", None))
+    monkeypatch.setattr(cli, "call_http_tool", call)
+    result = CliRunner().invoke(cli.app, ["dashboard"])
+
+    assert result.exit_code == 0, result.output
+    assert "Dashboard opened" in result.output
+    assert calls == [("memory_dashboard_open", {"open_browser": True})]

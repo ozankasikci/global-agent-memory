@@ -10,3 +10,7 @@ __pycache__/
 build/
 dist/
 htmlcov/
+node_modules/
+.npm-cache/
+.tmp/
+/design-qa.md

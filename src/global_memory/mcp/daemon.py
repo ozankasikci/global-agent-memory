@@ -19,6 +19,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from global_memory.dashboard import DashboardSessions, dashboard_routes
 from global_memory.embeddings.base import EmbeddingProvider
 from global_memory.embeddings.fake import FakeEmbeddingProvider
 from global_memory.embeddings.ollama import OllamaEmbeddingProvider
@@ -174,6 +175,8 @@ def create_http_app(
         embedding_provider=embedding_provider,
         embedding_batch_size=embedding_batch_size,
     )
+    dashboard_sessions = DashboardSessions(f"http://{host}:{port}")
+    container.dashboard_launcher = dashboard_sessions.launch
     mcp_server = create_mcp_server(container)
     watcher = VaultWatcher(
         vault_path,
@@ -235,6 +238,7 @@ def create_http_app(
         routes=[
             Route("/health/live", live, methods=["GET"]),
             Route("/health/ready", ready, methods=["GET"]),
+            *dashboard_routes(container, dashboard_sessions),
             Mount("/mcp", app=manager.handle_request),
         ],
         lifespan=lifespan,

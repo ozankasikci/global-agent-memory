@@ -18,6 +18,8 @@ codex mcp add global-memory -- global-memory-mcp --endpoint http://127.0.0.1:876
 
 Codex clients share `~/.codex/config.toml`. The installer backs it up before invoking the CLI. If the executable is absent, a guarded and marked `[mcp_servers.global-memory]` block is appended; uninstall removes only that exact block. Unmanaged conflicts are never adopted or replaced.
 
+After verification, ask Codex to **“Open the Global Agent Memory dashboard.”** The shared skill routes that request to `memory_dashboard_open`. The equivalent terminal command is `global-memory dashboard`.
+
 ```shell
 global-memory integrations uninstall codex
 ```

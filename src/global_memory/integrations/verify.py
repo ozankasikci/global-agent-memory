@@ -75,7 +75,7 @@ async def _exercise_client(
     templates = await session.list_resource_templates()
     prompts = await session.list_prompts()
     checks["discovery"] = (
-        len(tools.tools) == 14
+        len(tools.tools) == 15
         and len(resources.resources) + len(templates.resourceTemplates) == 10
         and len(prompts.prompts) == 6
     )

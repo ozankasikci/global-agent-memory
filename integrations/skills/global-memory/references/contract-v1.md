@@ -10,6 +10,7 @@ Use this reference only to choose a frozen capability. Discovery remains authori
 - `memory_tags`: browse bounded tag metadata.
 - `memory_status`: daemon, index, watcher, vector, conflict, and degradation state.
 - `memory_open`: return the Vault path and encoded Obsidian URI.
+- `memory_dashboard_open`: issue and optionally open a short-lived authenticated local dashboard session.
 
 Useful read-only resources include `memory://v1/status`, `memory://v1/projects`, `memory://v1/candidates`, `memory://v1/recent`, `memory://v1/tags`, and the discovered note/project URI templates.
 

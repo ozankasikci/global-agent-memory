@@ -259,6 +259,11 @@ TOOLS = [
         obj({"id": STRING}, ["id"]),
     ),
     tool(
+        "memory_dashboard_open",
+        "Open the authenticated local Global Agent Memory dashboard after an explicit user request.",
+        obj({"open_browser": {"type": "boolean", "default": True}}),
+    ),
+    tool(
         "memory_projects",
         "List, inspect, detect, add, update, or deactivate project registry entries with explicit mutation IDs.",
         obj(

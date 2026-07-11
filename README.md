@@ -18,6 +18,14 @@ uv run global-memory --version
 
 Runtime memory operations will use the MCP path. No client reads the Vault or generated SQLite index directly.
 
+Open the private review dashboard after the daemon is running:
+
+```shell
+global-memory dashboard
+```
+
+Claude Code, Codex, and other MCP clients can open the same authenticated dashboard with the `memory_dashboard_open` tool when you ask them to “open the memory dashboard.”
+
 See [operations](docs/operations.md) for initialization, daemon/service management, diagnostics, backup/restore, upgrades, and the complete MCP-routed CLI.
 
 Client setup: [Claude Code](docs/claude-code.md) and [Codex](docs/codex.md).

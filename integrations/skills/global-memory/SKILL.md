@@ -5,7 +5,7 @@ description: Retrieve and curate durable, project-aware knowledge through the Gl
 
 # Global Agent Memory
 
-Skill version: `1.0.0`  
+Skill version: `1.1.0`
 MCP contract version: `v1`
 
 Use the canonical MCP capability names. Do not assume a client-specific server prefix. Read [references/contract-v1.md](references/contract-v1.md) only when exact capability selection or arguments are unclear.
@@ -19,6 +19,12 @@ Use the canonical MCP capability names. Do not assume a client-specific server p
 5. When memory materially informs the work, cite its memory ID and Vault-relative path in the response or handoff.
 
 Do not turn retrieval into ceremony for trivial work. If the available context is sufficient and no durable history could change the answer, proceed.
+
+## Open the dashboard
+
+When the user explicitly asks to open, show, or launch the Global Agent Memory dashboard, call `memory_dashboard_open`
+with `open_browser=true`. Do not invent a URL or substitute Obsidian. The tool issues a short-lived authenticated local
+session and opens the dashboard through the shared daemon.
 
 ## Keep project isolation
 

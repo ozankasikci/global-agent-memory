@@ -4,6 +4,7 @@ All notable changes are recorded here.
 
 ## Unreleased
 
+- Add a ShadCN/TypeScript local dashboard for project overview, candidate review and editing, duplicate/conflict comparison, search, activity, and system health; expose secure launch through both `global-memory dashboard` and the `memory_dashboard_open` MCP tool.
 - Rename the product to Global Agent Memory while retaining the V1 `global-memory` CLI, package, configuration, Python, skill, and MCP identifiers for backward compatibility.
 - Freeze the MCP V1 discovery contract, schemas, prompts, resources, examples, and stable error codes.
 - Add the installable Python package and baseline quality gates.

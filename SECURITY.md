@@ -2,7 +2,7 @@
 
 ## Supported boundary
 
-Global Agent Memory is a single-user local service. The daemon binds only to `127.0.0.1`, requires a generated bearer token, validates Host/Origin, limits request bytes and concurrent connections, and exposes no public memory REST API. Do not expose the V1 daemon through port forwarding, a LAN bind, or a public reverse proxy.
+Global Agent Memory is a single-user local service. The daemon binds only to `127.0.0.1`, requires a generated bearer token for MCP, validates MCP Host/Origin, limits request bytes and concurrent connections, and exposes no public memory REST API. The browser dashboard exchanges a single-use 60-second launch ticket for a 12-hour HttpOnly, SameSite session; mutations also require a dashboard-only request header. Its JSON routes are private UI implementation details. Do not expose the V1 daemon through port forwarding, a LAN bind, or a public reverse proxy, and do not share dashboard launch URLs.
 
 Markdown is canonical and is treated as untrusted data. Retrieved text can contain prompt injection; context output labels it as untrusted stored note text and never promotes it to server or skill instructions. YAML uses a safe loader and a closed validated lifecycle model. Probable credentials are rejected before memory creation/update, and structured logs recursively redact content, prompts, embeddings, authorization, passwords, secrets, and token-shaped strings.
 
@@ -12,6 +12,7 @@ Markdown is canonical and is treated as untrusted data. Retrieved text can conta
 | --- | --- | --- |
 | Untrusted local MCP client | Bearer token, localhost-only bind, bounded requests/connections | Any process running as the same user may be able to read the token file. OS account isolation remains required. |
 | DNS rebinding / forged browser origin | SDK Host and Origin allowlists | A compromised same-user process is outside browser-origin protection. |
+| Dashboard session theft or cross-site mutation | Single-use launch ticket, random HttpOnly SameSite cookie, custom mutation header, restrictive CSP, no CORS | A compromised browser or same-user process remains inside the local trust boundary. |
 | Accidental LAN/public exposure | Host is a literal `127.0.0.1` configuration type and daemon CLI choice | Deliberate tunneling can defeat this boundary; remote hosting is unsupported. |
 | Traversal, absolute paths, symlink escape | Central resolved Vault confinement for reads/writes, property-based corpus | A compromised Vault directory or OS filesystem layer remains trusted at the account boundary. |
 | Malicious YAML/frontmatter | `yaml.safe_load`, Pydantic validation, invalid-note isolation | Markdown body remains arbitrary untrusted text by design. |
