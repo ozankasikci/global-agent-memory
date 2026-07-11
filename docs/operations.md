@@ -5,7 +5,7 @@
 Install from a wheel or package index into an isolated Python 3.12+ environment, then initialize an absolute Vault:
 
 ```shell
-global-memory init --vault "$HOME/Documents/Global Memory"
+global-memory init --vault "$HOME/Documents/Global Agent Memory"
 global-memory config validate
 global-memory doctor
 ```

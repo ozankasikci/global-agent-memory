@@ -75,7 +75,7 @@ def package_change(version: str | None = None) -> list[str]:
     else:
         raise GlobalMemoryError(
             ErrorCode.INTERNAL_ERROR,
-            "Neither pip nor uv is available to change the installed Global Memory version.",
+            "Neither pip nor uv is available to change the installed Global Agent Memory version.",
             remediation="Use the same environment manager that installed global-memory-mcp, then run doctor.",
         )
     try:
@@ -83,7 +83,7 @@ def package_change(version: str | None = None) -> list[str]:
     except (OSError, subprocess.CalledProcessError) as exc:
         raise GlobalMemoryError(
             ErrorCode.INTERNAL_ERROR,
-            "The package manager could not change the installed Global Memory version.",
+            "The package manager could not change the installed Global Agent Memory version.",
             details={"command": command[:-1], "requirement": requirement},
             remediation="Use the same environment manager that installed global-memory-mcp, then run doctor.",
         ) from exc
@@ -117,7 +117,7 @@ def render_service_file(kind: str, *, config_file: Path, home: Path, executable:
         path = home / ".config/systemd/user/global-memory.service"
         command = " ".join(shlex.quote(part) for part in arguments)
         content = (
-            f"# {MANAGED_MARKER}\n[Unit]\nDescription=Global Memory MCP daemon\n\n"
+            f"# {MANAGED_MARKER}\n[Unit]\nDescription=Global Agent Memory MCP daemon\n\n"
             f"[Service]\nType=simple\nExecStart={command}\nRestart=on-failure\n\n"
             "[Install]\nWantedBy=default.target\n"
         ).encode()
@@ -175,7 +175,7 @@ def enable_service(service: ServiceFile) -> list[list[str]]:
     except (OSError, subprocess.CalledProcessError) as exc:
         raise GlobalMemoryError(
             ErrorCode.INTERNAL_ERROR,
-            "The native user-service manager could not enable Global Memory.",
+            "The native user-service manager could not enable Global Agent Memory.",
             details={"kind": service.kind},
             remediation="Inspect the installed service file, enable it manually, then run doctor.",
         ) from exc
@@ -201,7 +201,7 @@ def disable_service(service: ServiceFile) -> list[list[str]]:
     except OSError as exc:
         raise GlobalMemoryError(
             ErrorCode.INTERNAL_ERROR,
-            "The native user-service manager could not disable Global Memory.",
+            "The native user-service manager could not disable Global Agent Memory.",
             details={"kind": service.kind},
             remediation="Stop the user service manually before removing the managed service file.",
         ) from exc

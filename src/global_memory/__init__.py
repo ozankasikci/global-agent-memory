@@ -1,3 +1,3 @@
-"""Global Memory MCP server package."""
+"""Global Agent Memory MCP server package."""
 
 __version__ = "0.1.0"

@@ -22,7 +22,7 @@ def draft(title: str = "Safe retries", content: str = "# Summary\n\nUse request 
         content=content,
         type="decision",
         scope="project",
-        project="Global Memory",
+        project="Global Agent Memory",
         tags=["idempotency"],
     )
 

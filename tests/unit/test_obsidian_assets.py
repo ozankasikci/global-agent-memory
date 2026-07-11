@@ -19,7 +19,7 @@ def _paths(tmp_path: Path) -> PlatformPaths:
 
 
 def test_initialization_installs_valid_templates_bases_and_review_workflow(tmp_path: Path) -> None:
-    vault = tmp_path / "Global Memory"
+    vault = tmp_path / "Global Agent Memory"
     initialize(GlobalMemorySettings(vault_path=vault), _paths(tmp_path))
 
     templates = sorted((vault / "Templates").glob("*.md"))
@@ -69,7 +69,7 @@ def test_initialization_installs_valid_templates_bases_and_review_workflow(tmp_p
 
 
 def test_obsidian_assets_never_overwrite_user_edits(tmp_path: Path) -> None:
-    vault = tmp_path / "Global Memory"
+    vault = tmp_path / "Global Agent Memory"
     existing = vault / "Templates/Decision.md"
     existing.parent.mkdir(parents=True)
     existing.write_text("custom template\n")

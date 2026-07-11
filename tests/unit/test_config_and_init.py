@@ -44,7 +44,7 @@ def test_invalid_configuration_reports_all_fields(tmp_path: Path) -> None:
 
 def test_initialization_is_idempotent_and_protects_token(tmp_path: Path) -> None:
     platform_paths = paths(tmp_path)
-    vault = tmp_path / "Global Memory"
+    vault = tmp_path / "Global Agent Memory"
     settings = GlobalMemorySettings(vault_path=vault)
 
     first = initialize(settings, platform_paths)
@@ -62,7 +62,7 @@ def test_initialization_is_idempotent_and_protects_token(tmp_path: Path) -> None
 
 def test_initialization_never_overwrites_existing_vault_readme(tmp_path: Path) -> None:
     platform_paths = paths(tmp_path)
-    vault = tmp_path / "Global Memory"
+    vault = tmp_path / "Global Agent Memory"
     vault.mkdir()
     readme = vault / "README.md"
     readme.write_text("user content\n")

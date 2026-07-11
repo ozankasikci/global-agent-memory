@@ -1,6 +1,6 @@
 # MCP Contract V1
 
-The generated files under `contracts/mcp/v1/` are the frozen public AI-facing contract for Global Memory V1. `discovery.json` is the golden capability snapshot. Individual tool, resource, and prompt files are generated from the same canonical definition for inspection and compatibility checks.
+The generated files under `contracts/mcp/v1/` are the frozen public AI-facing contract for Global Agent Memory V1. `discovery.json` is the golden capability snapshot. Individual tool, resource, and prompt files are generated from the same canonical definition for inspection and compatibility checks.
 
 Every successful response uses the V1 success envelope and every domain failure uses the V1 error envelope. All mutation operations are idempotent by `request_id`. Candidate creation can never directly create active memory.
 

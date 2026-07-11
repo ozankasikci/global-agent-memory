@@ -31,7 +31,7 @@
     },
     {
       "arguments": {
-        "project": "Global Memory",
+        "project": "Global Agent Memory",
         "task": "Implement safe retries"
       },
       "tool": "memory_context"
@@ -39,7 +39,7 @@
     {
       "arguments": {
         "content": "Retries are idempotent.",
-        "project": "Global Memory",
+        "project": "Global Agent Memory",
         "request_id": "req-1",
         "scope": "project",
         "title": "Retry rule",

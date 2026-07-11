@@ -97,7 +97,7 @@ def _unavailable_server(endpoint: str) -> Server[Any]:
         envelope = failure(
             GlobalMemoryError(
                 ErrorCode.DAEMON_UNAVAILABLE,
-                "The shared Global Memory daemon is unavailable.",
+                "The shared Global Agent Memory daemon is unavailable.",
                 retryable=True,
                 details={"endpoint": endpoint},
                 remediation="Start the daemon with `global-memory daemon start` and retry.",
@@ -135,7 +135,7 @@ async def run_proxy(endpoint: str, token_file: Path) -> None:
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Proxy stdio MCP to the shared Global Memory daemon.")
+    parser = argparse.ArgumentParser(description="Proxy stdio MCP to the shared Global Agent Memory daemon.")
     parser.add_argument("--endpoint", default="http://127.0.0.1:8765/mcp/")
     parser.add_argument("--token-file", type=Path, required=True)
     return parser

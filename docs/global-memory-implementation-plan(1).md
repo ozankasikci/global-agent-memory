@@ -1,10 +1,10 @@
-# Global Memory System — MCP-First Implementation Plan for an AI Coding Agent
+# Global Agent Memory System — MCP-First Implementation Plan for an AI Coding Agent
 
 ## 1. Mission and product definition
 
 Build a local-first, project-aware, durable memory system that can be shared by every supported AI coding session on one computer.
 
-The product is the **Global Memory MCP server**. Obsidian, Markdown, SQLite, embeddings, the daemon, the CLI, and client-specific skills exist to support that MCP interface.
+The product is the **Global Agent Memory MCP server**. Obsidian, Markdown, SQLite, embeddings, the daemon, the CLI, and client-specific skills exist to support that MCP interface.
 
 The system must:
 
@@ -135,9 +135,9 @@ Semantic storage and embedding providers must be replaceable. Keyword-only opera
 ## 5. High-level architecture
 
 ```text
-Claude Code ── shared Global Memory skill ─┐
+Claude Code ── shared Global Agent Memory skill ─┐
                                            │ stdio MCP
-Codex CLI/IDE ─ shared Global Memory skill ├──────┐
+Codex CLI/IDE ─ shared Global Agent Memory skill ├──────┐
                                            │      │
 Other MCP client ──────────────────────────┘      ▼
                                       global-memory-mcp
@@ -266,7 +266,7 @@ The same physical skill directory should be installable into both clients, prefe
 ### 6.3 Vault layout
 
 ```text
-Global Memory/
+Global Agent Memory/
 ├── 00 Inbox/
 │   └── AI Candidates/
 ├── 10 Global/
@@ -1160,7 +1160,7 @@ When the real client executable is unavailable in CI, use adapter and configurat
 Example `config.toml`:
 
 ```toml
-vault_path = "/Users/example/Documents/Global Memory"
+vault_path = "/Users/example/Documents/Global Agent Memory"
 log_level = "INFO"
 
 [mcp]
@@ -1974,7 +1974,7 @@ One canonical skill is ready to install in both clients.
 
 ### Goal
 
-Install, register, verify, and uninstall Global Memory for Claude Code safely.
+Install, register, verify, and uninstall Global Agent Memory for Claude Code safely.
 
 ### Work
 
@@ -2010,7 +2010,7 @@ Claude Code can explicitly invoke the skill and access the shared daemon without
 
 ### Goal
 
-Install, register, verify, and uninstall Global Memory for Codex safely.
+Install, register, verify, and uninstall Global Agent Memory for Codex safely.
 
 ### Work
 

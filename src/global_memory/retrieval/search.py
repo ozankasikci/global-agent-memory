@@ -112,7 +112,7 @@ class SearchService:
         embedding_provider: EmbeddingProvider | None = None,
         vectors: VectorStore | None = None,
         project_detector: ProjectDetector | None = None,
-        vault_name: str = "Global Memory",
+        vault_name: str = "Global Agent Memory",
         keyword_candidates: int = 50,
         semantic_candidates: int = 50,
         rrf_k: int = 60,

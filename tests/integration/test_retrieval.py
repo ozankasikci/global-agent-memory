@@ -121,7 +121,7 @@ def fixture(tmp_path: Path) -> tuple[IndexDatabase, Indexer]:
 
 def test_default_project_and_status_isolation_with_complete_fields(tmp_path: Path) -> None:
     database, indexer = fixture(tmp_path)
-    service = SearchService(database, indexer, vault_name="Global Memory")
+    service = SearchService(database, indexer, vault_name="Global Agent Memory")
     page = service.search(SearchRequest(query="conveyor", project="Alpha", mode="keyword", limit=20))
     ids = [result.memory_id for result in page.results]
     assert set(ids) == {"mem_alpha", "mem_global", "mem_org", "mem_session"}
@@ -131,7 +131,7 @@ def test_default_project_and_status_isolation_with_complete_fields(tmp_path: Pat
     assert alpha.path == "notes/mem_alpha.md"
     assert alpha.keyword_rank is not None and alpha.semantic_rank is None
     assert alpha.reasons
-    assert alpha.obsidian_uri.startswith("obsidian://open?vault=Global%20Memory")
+    assert alpha.obsidian_uri.startswith("obsidian://open?vault=Global%20Agent%20Memory")
     assert "recency_adjustment" in alpha.reasons
     assert page.project_source == "explicit" and page.project_explanation
 

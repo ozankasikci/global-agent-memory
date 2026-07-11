@@ -1,6 +1,6 @@
 # Codex integration
 
-Initialize and start Global Memory first, then install:
+Initialize and start Global Agent Memory first, then install:
 
 ```shell
 global-memory integrations install codex

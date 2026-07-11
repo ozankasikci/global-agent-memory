@@ -28,7 +28,7 @@ def active_note(
             content=content,
             type="decision",
             scope="project",
-            project="Global Memory",
+            project="Global Agent Memory",
             tags=["sqlite", "search"],
         )
     )
@@ -44,7 +44,7 @@ def test_migrations_wal_full_index_filters_and_rebuild_equivalence(tmp_path: Pat
     indexer = Indexer(tmp_path / "vault", database)
 
     report = indexer.full_reindex()
-    before = indexer.keyword_search("VERSION_CONFLICT", project="Global Memory", statuses=["active"])
+    before = indexer.keyword_search("VERSION_CONFLICT", project="Global Agent Memory", statuses=["active"])
     assert report.indexed == 1
     assert [result.memory_id for result in before] == [note.metadata.id]
     assert before[0].path == note.relative_path.as_posix()
@@ -53,7 +53,7 @@ def test_migrations_wal_full_index_filters_and_rebuild_equivalence(tmp_path: Pat
     assert indexer.keyword_search('"Exact VERSION_CONFLICT"')[0].memory_id == note.metadata.id
     assert indexer.keyword_search("Handle Exact VERSION_CONFLICT safely")[0].memory_id == note.metadata.id
     assert not indexer.keyword_search('"missing VERSION_CONFLICT"')
-    assert indexer.metadata_search(project="Global Memory", types=["decision"], tags=["sqlite"])[0].memory_id == (
+    assert indexer.metadata_search(project="Global Agent Memory", types=["decision"], tags=["sqlite"])[0].memory_id == (
         note.metadata.id
     )
     assert database.connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
@@ -61,7 +61,7 @@ def test_migrations_wal_full_index_filters_and_rebuild_equivalence(tmp_path: Pat
     assert database.connection.execute("SELECT version FROM schema_migrations").fetchall()
 
     indexer.full_reindex()
-    after = indexer.keyword_search("VERSION_CONFLICT", project="Global Memory", statuses=["active"])
+    after = indexer.keyword_search("VERSION_CONFLICT", project="Global Agent Memory", statuses=["active"])
     assert [(item.memory_id, item.path, item.excerpt) for item in after] == [
         (item.memory_id, item.path, item.excerpt) for item in before
     ]
@@ -78,7 +78,7 @@ def test_incremental_edit_move_and_delete(tmp_path: Path) -> None:
     assert indexer.index_path(note.relative_path) == "indexed"
     assert indexer.keyword_search("reconciliation")
 
-    moved = Path("20 Projects/Global Memory/Decisions/Renamed.md")
+    moved = Path("20 Projects/Global Agent Memory/Decisions/Renamed.md")
     destination = tmp_path / "vault" / moved
     destination.parent.mkdir(parents=True, exist_ok=True)
     note.path.rename(destination)
@@ -136,9 +136,9 @@ def test_invalid_notes_are_isolated_and_recorded(tmp_path: Path) -> None:
 def test_obsidian_support_assets_are_not_reported_as_invalid_memories(tmp_path: Path) -> None:
     vault = tmp_path / "vault"
     vault.mkdir()
-    (vault / "README.md").write_text("# Global Memory\n")
+    (vault / "README.md").write_text("# Global Agent Memory\n")
     install_obsidian_assets(vault)
-    ensure_project_overview(vault, "Global Memory")
+    ensure_project_overview(vault, "Global Agent Memory")
 
     report = Indexer(vault, IndexDatabase(tmp_path / "data" / "memory.db")).full_reindex()
 

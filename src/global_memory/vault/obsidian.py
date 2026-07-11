@@ -149,7 +149,7 @@ Do not edit lifecycle properties (`id`, `status`, `created_at`, `updated_at`, `s
 Normal body and descriptive property edits in Obsidian are indexed by the watcher. Never place credentials in a note.
 """
 
-DASHBOARD_INDEX = """# Global Memory dashboards
+DASHBOARD_INDEX = """# Global Agent Memory dashboards
 
 ## Review
 
@@ -196,7 +196,7 @@ def _template(name: str, memory_type: str, scope: str, body: str) -> str:
 def install_obsidian_assets(vault: Path) -> list[Path]:
     """Install missing managed visual assets and preserve every existing file."""
     assets: dict[Path, str] = {
-        Path("Dashboards/Global Memory.md"): DASHBOARD_INDEX,
+        Path("Dashboards/Global Agent Memory.md"): DASHBOARD_INDEX,
         Path("Dashboards/Candidate Review Guide.md"): REVIEW_GUIDE,
     }
     assets.update({Path("Dashboards") / name: content for name, content in DASHBOARDS.items()})

@@ -29,16 +29,16 @@ MANAGED_DIRECTORIES = (
     "Dashboards",
 )
 
-VAULT_README = """# Global Memory
+VAULT_README = """# Global Agent Memory
 
-This Obsidian Vault is the durable source of truth for Global Memory. Markdown and YAML may be inspected and edited
-here. Generated databases, vectors, tokens, locks, and logs are stored outside this Vault and can be rebuilt.
+This Obsidian Vault is the durable source of truth for Global Agent Memory. Markdown and YAML may be inspected
+and edited here. Generated databases, vectors, tokens, locks, and logs are stored outside this Vault and can be rebuilt.
 
-AI-created notes enter `00 Inbox/AI Candidates/` for review. Lifecycle changes should use the Global Memory MCP tools
-or CLI so identity, audit history, and indexes remain consistent.
+AI-created notes enter `00 Inbox/AI Candidates/` for review. Lifecycle changes should use the Global Agent Memory MCP
+tools or CLI so identity, audit history, and indexes remain consistent.
 
-Open [[Dashboards/Global Memory]] for review queues, active knowledge, and lifecycle history. Project-scoped memories
-link to a generated project overview. Existing templates, dashboards, and overview files are never overwritten.
+Open [[Dashboards/Global Agent Memory]] for review queues, active knowledge, and lifecycle history. Project-scoped
+memories link to a generated project overview. Existing templates, dashboards, and overview files are never overwritten.
 """
 
 
@@ -101,7 +101,7 @@ def initialize(settings: GlobalMemorySettings, paths: PlatformPaths) -> Initiali
     except OSError as exc:
         raise GlobalMemoryError(
             ErrorCode.VAULT_NOT_WRITABLE,
-            "Global Memory initialization could not write a required path.",
+            "Global Agent Memory initialization could not write a required path.",
             details={"path": str(getattr(exc, "filename", vault)), "reason": str(exc)},
             remediation="Check ownership and permissions, then retry initialization.",
         ) from exc

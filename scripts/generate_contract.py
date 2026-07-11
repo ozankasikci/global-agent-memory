@@ -455,7 +455,7 @@ ERROR_SCHEMA = {
 EXAMPLES = {
     "valid": [
         {"tool": "memory_search", "arguments": {"query": "VERSION_CONFLICT", "mode": "keyword"}},
-        {"tool": "memory_context", "arguments": {"task": "Implement safe retries", "project": "Global Memory"}},
+        {"tool": "memory_context", "arguments": {"task": "Implement safe retries", "project": "Global Agent Memory"}},
         {
             "tool": "memory_remember",
             "arguments": {
@@ -464,7 +464,7 @@ EXAMPLES = {
                 "content": "Retries are idempotent.",
                 "type": "convention",
                 "scope": "project",
-                "project": "Global Memory",
+                "project": "Global Agent Memory",
             },
         },
     ],

@@ -67,7 +67,7 @@ def cli(
         typer.Option("--version", callback=version_callback, is_eager=True, help="Show the installed package version."),
     ] = False,
 ) -> None:
-    """Run Global Memory administrative and runtime commands."""
+    """Run Global Agent Memory administrative and runtime commands."""
     del version
 
 

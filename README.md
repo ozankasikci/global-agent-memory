@@ -1,6 +1,8 @@
-# Global Memory MCP
+# Global Agent Memory
 
-Global Memory is a local-first, project-aware durable memory service for MCP-compatible coding clients. Markdown notes in an Obsidian Vault are canonical; SQLite, FTS, vectors, jobs, and caches are generated state that can be rebuilt.
+Global Agent Memory is a local-first, project-aware durable memory service for MCP-compatible coding agents. Markdown notes in an Obsidian Vault are canonical; SQLite, FTS, vectors, jobs, and caches are generated state that can be rebuilt.
+
+The V1 technical identifiers remain `global-memory`, `global-memory-mcp`, `global-memoryd`, `global_memory`, and `product: global-memory` for backward compatibility. The product, Vault, and repository use the **Global Agent Memory** name.
 
 The project is being implemented in the ordered phases documented in [`docs/global-memory-implementation-plan(1).md`](docs/global-memory-implementation-plan(1).md). The frozen V1 discovery contract lives in [`contracts/mcp/v1/discovery.json`](contracts/mcp/v1/discovery.json).
 

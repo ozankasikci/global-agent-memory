@@ -9,7 +9,7 @@ description = "Local-first, project-aware durable memory through a versioned MCP
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [{ name = "Global Memory contributors" }]
+authors = [{ name = "Global Agent Memory contributors" }]
 dependencies = [
   "httpx>=0.28,<1",
   "mcp>=1.12,<2",

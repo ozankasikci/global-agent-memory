@@ -1,9 +1,9 @@
 ---
 name: global-memory
-description: Retrieve and curate durable, project-aware knowledge through the Global Memory MCP server. Use before substantial planning, implementation, refactoring, debugging, handoff preparation, or investigation when prior decisions, exact identifiers, recurring errors, verified solutions, preferences, or conventions may matter; also use after work when durable verified knowledge may be worth proposing as a review candidate.
+description: Retrieve and curate durable, project-aware knowledge through the Global Agent Memory MCP server. Use before substantial planning, implementation, refactoring, debugging, handoff preparation, or investigation when prior decisions, exact identifiers, recurring errors, verified solutions, preferences, or conventions may matter; also use after work when durable verified knowledge may be worth proposing as a review candidate.
 ---
 
-# Global Memory
+# Global Agent Memory
 
 Skill version: `1.0.0`  
 MCP contract version: `v1`

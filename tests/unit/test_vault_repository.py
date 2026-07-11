@@ -24,11 +24,11 @@ def draft() -> MemoryDraft:
         content="# Atomic writes\n\nKeep the original on failure.\n",
         type="decision",
         scope="project",
-        project="Global Memory",
+        project="Global Agent Memory",
         confidence=0.9,
         importance=0.8,
         tags=["safety"],
-        links=["[[Global Memory]]"],
+        links=["[[Global Agent Memory]]"],
         source_kind="manual",
     )
 
@@ -103,7 +103,7 @@ def test_canonical_routing_is_status_scope_and_type_aware(tmp_path: Path) -> Non
     repo = repository(tmp_path)
     created = repo.create_candidate(draft())
     active = created.metadata.model_copy(update={"status": MemoryStatus.ACTIVE})
-    assert canonical_path(active).parent.as_posix() == "20 Projects/Global Memory/Decisions"
+    assert canonical_path(active).parent.as_posix() == "20 Projects/Global Agent Memory/Decisions"
     assert canonical_path(active.model_copy(update={"status": MemoryStatus.ARCHIVED})).parts[0] == "90 Archive"
     assert canonical_path(active.model_copy(update={"status": MemoryStatus.REJECTED})).parent.as_posix() == (
         "90 Archive/Rejected"
@@ -143,7 +143,7 @@ def test_lifecycle_operations_route_through_application_service(tmp_path: Path) 
 
     active = MemoryService(repository(tmp_path, LATER)).approve(candidate.metadata.id, candidate.version)
     assert active.metadata.status is MemoryStatus.ACTIVE
-    assert active.relative_path.parent.as_posix() == "20 Projects/Global Memory/Decisions"
+    assert active.relative_path.parent.as_posix() == "20 Projects/Global Agent Memory/Decisions"
     assert not candidate.path.exists()
 
     second = MemoryService(repository(tmp_path, LATER)).remember(draft(), force=True)
@@ -166,7 +166,7 @@ def test_project_and_supersession_visual_links_survive_lifecycle_moves(tmp_path:
     project_link = first.metadata.model_extra["project_link"]
     active = MemoryService(repository(tmp_path, LATER)).approve(first.metadata.id, first.version)
     assert active.metadata.model_extra["project_link"] == project_link
-    assert (tmp_path / "vault/20 Projects/Global Memory/Project Overview.md").exists()
+    assert (tmp_path / "vault/20 Projects/Global Agent Memory/Project Overview.md").exists()
 
     replacement = MemoryService(repository(tmp_path, LATER)).remember(
         MemoryDraft(
@@ -174,7 +174,7 @@ def test_project_and_supersession_visual_links_survive_lifecycle_moves(tmp_path:
             content="# Safer atomic writes\n",
             type="decision",
             scope="project",
-            project="Global Memory",
+            project="Global Agent Memory",
         )
     )
     result = repository(tmp_path, LATER + timedelta(minutes=1)).supersede(
@@ -197,7 +197,7 @@ def test_supersede_second_write_failure_restores_both_originals(
             content="# Replacement\n",
             type="decision",
             scope="project",
-            project="Global Memory",
+            project="Global Agent Memory",
         )
     )
     old_bytes = active.path.read_bytes()

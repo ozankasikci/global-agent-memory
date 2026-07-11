@@ -243,7 +243,7 @@ def create_http_app(
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run the Global Memory Streamable HTTP daemon.")
+    parser = argparse.ArgumentParser(description="Run the Global Agent Memory Streamable HTTP daemon.")
     parser.add_argument("--vault", type=Path, required=True)
     parser.add_argument("--state", type=Path, required=True)
     parser.add_argument("--token-file", type=Path, required=True)

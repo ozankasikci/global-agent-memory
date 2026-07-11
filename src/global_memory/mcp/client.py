@@ -28,7 +28,7 @@ async def call_http_tool(endpoint: str, token_file: Path, name: str, arguments: 
     except (httpx.HTTPError, OSError) as exc:
         raise GlobalMemoryError(
             ErrorCode.DAEMON_UNAVAILABLE,
-            "The shared Global Memory daemon is unavailable.",
+            "The shared Global Agent Memory daemon is unavailable.",
             retryable=True,
             details={"endpoint": endpoint},
             remediation="Start the daemon with `global-memory daemon start` and retry.",

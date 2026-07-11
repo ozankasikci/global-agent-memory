@@ -2,7 +2,7 @@
 
 ## Supported boundary
 
-Global Memory is a single-user local service. The daemon binds only to `127.0.0.1`, requires a generated bearer token, validates Host/Origin, limits request bytes and concurrent connections, and exposes no public memory REST API. Do not expose the V1 daemon through port forwarding, a LAN bind, or a public reverse proxy.
+Global Agent Memory is a single-user local service. The daemon binds only to `127.0.0.1`, requires a generated bearer token, validates Host/Origin, limits request bytes and concurrent connections, and exposes no public memory REST API. Do not expose the V1 daemon through port forwarding, a LAN bind, or a public reverse proxy.
 
 Markdown is canonical and is treated as untrusted data. Retrieved text can contain prompt injection; context output labels it as untrusted stored note text and never promotes it to server or skill instructions. YAML uses a safe loader and a closed validated lifecycle model. Probable credentials are rejected before memory creation/update, and structured logs recursively redact content, prompts, embeddings, authorization, passwords, secrets, and token-shaped strings.
 

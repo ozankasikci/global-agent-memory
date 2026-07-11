@@ -4,6 +4,7 @@ All notable changes are recorded here.
 
 ## Unreleased
 
+- Rename the product to Global Agent Memory while retaining the V1 `global-memory` CLI, package, configuration, Python, skill, and MCP identifiers for backward compatibility.
 - Freeze the MCP V1 discovery contract, schemas, prompts, resources, examples, and stable error codes.
 - Add the installable Python package and baseline quality gates.
 - Add validated configuration precedence, platform-native generated-state paths, safe Vault initialization, and protected local token creation.
@@ -18,7 +19,7 @@ All notable changes are recorded here.
 - Add idempotent Obsidian templates, Bases dashboards, review guidance, project overview hubs, path-stable visual links, and support-asset-aware indexing.
 - Add persisted/debounced watcher jobs, startup reconciliation, bounded retry schedules, generated-database corruption quarantine and Markdown rebuild, and graceful daemon watcher shutdown.
 - Add the complete MCP-routed runtime CLI, doctor diagnostics, foreground and managed service operation, native launchd/systemd user files, shell completion, verified backup/restore, upgrade/rollback, and self-contained wheel packaging.
-- Add the canonical client-neutral Global Memory Agent Skill with bounded V1 reference material, durable-memory workflow, project isolation, optimistic lifecycle rules, source citation, and security constraints.
+- Add the canonical client-neutral Global Agent Memory Agent Skill with bounded V1 reference material, durable-memory workflow, project isolation, optimistic lifecycle rules, source citation, and security constraints.
 - Add guarded Claude Code and Codex installers with canonical skill symlink/copy modes, preferred official CLI registration, backed-up config fallbacks, managed instruction snippets, manifests, status/verify/uninstall, and shared-daemon isolation acceptance.
 - Add release threat modeling, probable-secret rejection, recursive structured-log redaction, malicious-note and traversal hardening tests, and a recorded 10,000-note plus HTTP/stdio performance regression suite.
 - Wire configured embeddings and vectors into the shared daemon with changed-note resync and keyword-only outage degradation; add combined V1 cross-client, Obsidian-equivalent, semantic, concurrency, crash-recovery, and generated-state rebuild acceptance.
