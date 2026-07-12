@@ -26,6 +26,8 @@ global-memory dashboard
 
 Claude Code, Codex, and other MCP clients can open the same authenticated dashboard with the `memory_dashboard_open` tool when you ask them to “open the memory dashboard.”
 
+Memories can be classified as **Standard**, **Protected**, or **Sealed** in the dashboard. For protected memories, owners configure the maximum permission, project restrictions, and whether every retrieval needs approval. When approving a request, the owner selects the exact memories and may only reduce the agent's requested permission or duration. Sealed memories are never returned through agent tools and can only be unlocked for one audited dashboard view. Credentials and secrets must not be stored in any classification.
+
 See [operations](docs/operations.md) for initialization, daemon/service management, diagnostics, backup/restore, upgrades, and the complete MCP-routed CLI.
 
 Client setup: [Claude Code](docs/claude-code.md) and [Codex](docs/codex.md).

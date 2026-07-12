@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { AccessScreen } from "@/features/access/access-screen"
 import { MemoryDetail } from "@/features/memory/memory-detail"
 import { OverviewScreen } from "@/features/overview/overview-screen"
 import { ProjectsScreen } from "@/features/projects/projects-screen"
@@ -18,6 +19,7 @@ import type { MemoryRecord, Screen } from "@/types"
 const navigation: Array<{ screen: Screen; label: string }> = [
   { screen: "overview", label: "Overview" },
   { screen: "review", label: "Review" },
+  { screen: "access", label: "Access" },
   { screen: "search", label: "Memories" },
   { screen: "projects", label: "Projects" },
   { screen: "system", label: "System" },
@@ -57,9 +59,6 @@ export function App() {
       } else if (event.key === "ArrowLeft" || event.key.toLowerCase() === "k") {
         event.preventDefault()
         moveCandidate(-1)
-      } else if (event.key.toLowerCase() === "a" && selected) {
-        event.preventDefault()
-        void dashboard.approve(selected).catch(showError)
       }
     }
     window.addEventListener("keydown", onKeyDown)
@@ -76,6 +75,7 @@ export function App() {
   if (dashboard.error || !dashboard.data) return <ErrorState message={dashboard.error ?? "No dashboard data was returned."} onRetry={dashboard.reload} />
 
   const data = dashboard.data
+  const pendingAccess = data.access.requests.filter((request) => request.status === "pending")
   const position = selected ? `${data.candidates.findIndex((candidate) => candidate.id === selected.id) + 1} of ${data.candidates.length}` : "—"
 
   function navigate(next: Screen) {
@@ -91,19 +91,23 @@ export function App() {
           <nav className="flex items-center gap-1">
             {navigation.map((item) => {
               const active = screen === item.screen || (item.screen === "search" && screen === "detail")
-              const label = item.screen === "review" && data.candidates.length ? `${item.label} · ${data.candidates.length}` : item.label
+              const count = item.screen === "review" ? data.candidates.length : item.screen === "access" ? pendingAccess.length : 0
+              const label = count ? `${item.label} · ${count}` : item.label
               return <Button key={item.screen} variant="ghost" size="sm" onClick={() => navigate(item.screen)} className={cn("h-8 rounded-md px-2.5 text-[13px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground", active && "text-foreground underline decoration-border underline-offset-[7px]")}>{label}</Button>
             })}
           </nav>
         </header>
 
+        {!!pendingAccess.length && <div className="shrink-0 border-y border-subtle"><div className="gam-header flex min-h-10 items-center gap-2.5 px-10 text-[12px]"><span className="h-1.5 w-1.5 rounded-full bg-warning" /><span className="min-w-0 flex-1 truncate text-muted-foreground">{pendingAccess[0].agent} is requesting access to protected memory</span><Button variant="link" onClick={() => navigate("access")} className="h-auto shrink-0 p-0 text-[12px] font-normal text-muted-foreground hover:text-foreground">Review request →</Button></div></div>}
+
         <main className="flex min-h-0 flex-1 flex-col">
           {screen === "review" && <CandidateDetail candidate={selected} position={position} onApprove={dashboard.approve} onReject={dashboard.reject} onUpdate={dashboard.update} onOpenMemory={openMemory} onPrevious={() => moveCandidate(-1)} onNext={() => moveCandidate(1)} />}
+          {screen === "access" && <AccessScreen access={data.access} onApprove={dashboard.approveAccess} onDeny={dashboard.denyAccess} onRevoke={dashboard.revokeAccess} />}
           {screen === "overview" && <OverviewScreen data={data} onReview={() => navigate("review")} onSearch={(query) => { setSearchQuery(query ?? ""); setScreen("search") }} onOpenMemory={openMemory} />}
           {screen === "search" && <SearchScreen memories={data.memories} initialQuery={searchQuery} onOpenMemory={openMemory} />}
           {screen === "projects" && <ProjectsScreen data={data} activeProject={dashboard.project} onSelect={(project) => { dashboard.selectProject(project); setScreen("overview") }} />}
           {screen === "system" && <SystemScreen data={data} onReindex={dashboard.reindex} onBackup={dashboard.backup} />}
-          {screen === "detail" && detail && <MemoryDetail memory={detail} onBack={() => setScreen("search")} onArchive={dashboard.archive} onOpenObsidian={dashboard.openObsidian} onOpenFile={dashboard.openFile} onUpdate={dashboard.update} />}
+          {screen === "detail" && detail && <MemoryDetail memory={detail} projects={data.projects} onBack={() => setScreen("search")} onArchive={dashboard.archive} onOpenObsidian={dashboard.openObsidian} onOpenFile={dashboard.openFile} onUpdate={dashboard.update} onClassify={dashboard.classify} onUnlock={dashboard.unlock} />}
         </main>
       </div>
       <Toaster richColors theme="dark" position="bottom-center" />

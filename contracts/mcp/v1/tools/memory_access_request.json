@@ -1,44 +1,61 @@
 {
   "contract_version": 1,
-  "description": "Archive a durable memory by default, requiring explicit hard-delete intent for destructive removal.",
+  "description": "Request owner approval for a purpose-bound, temporary protected-memory capability. Agents cannot approve requests.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
-      "access_grant": {
-        "description": "Owner-approved temporary protected-memory grant.",
+      "agent": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "duration": {
+        "default": "once",
+        "enum": [
+          "once",
+          "task",
+          "15m",
+          "session"
+        ],
+        "type": "string"
+      },
+      "permission": {
+        "default": "read",
+        "enum": [
+          "read",
+          "edit",
+          "manage"
+        ],
+        "type": "string"
+      },
+      "project": {
         "type": [
           "string",
           "null"
         ]
       },
-      "hard_delete": {
-        "default": false,
-        "type": "boolean"
-      },
-      "id": {
-        "type": "string"
-      },
-      "reason": {
+      "purpose": {
         "minLength": 1,
         "type": "string"
       },
-      "request_id": {
+      "query": {
         "minLength": 1,
         "type": "string"
       },
-      "verbose": {
-        "default": false,
-        "type": "boolean"
+      "working_directory": {
+        "type": [
+          "string",
+          "null"
+        ]
       }
     },
     "required": [
-      "request_id",
-      "id",
-      "reason"
+      "agent",
+      "purpose",
+      "query"
     ],
     "type": "object"
   },
-  "name": "memory_archive",
+  "name": "memory_access_request",
   "outputSchema": {
     "additionalProperties": false,
     "properties": {

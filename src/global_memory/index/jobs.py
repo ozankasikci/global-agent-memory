@@ -131,7 +131,7 @@ class IndexJobQueue:
                 failed += int(terminal)
                 retried += int(not terminal)
             else:
-                if row["event_type"] != "delete" and self.on_indexed is not None:
+                if self.on_indexed is not None:
                     self.on_indexed(path)
                 self.database.connection.execute(
                     "UPDATE index_jobs SET status='completed', last_error=NULL, next_attempt_at=NULL, updated_at=? "

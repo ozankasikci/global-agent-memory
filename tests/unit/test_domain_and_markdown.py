@@ -63,6 +63,15 @@ def test_unknown_memory_type_is_preserved_for_future_compatibility() -> None:
     assert note.type == "future_custom_type"
 
 
+def test_legacy_default_permission_is_read_and_serialized_as_max_permission() -> None:
+    note = metadata(default_permission="manage")
+
+    assert note.max_permission.value == "manage"
+    dumped = note.model_dump(mode="json")
+    assert dumped["max_permission"] == "manage"
+    assert "default_permission" not in dumped
+
+
 def test_invalid_frontmatter_has_stable_error() -> None:
     with pytest.raises(GlobalMemoryError) as caught:
         parse_note("# no frontmatter\n")

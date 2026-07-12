@@ -4,6 +4,13 @@
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
+      "access_grant": {
+        "description": "Owner-approved temporary protected-memory grant.",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
       "cross_project": {
         "default": false,
         "type": "boolean"

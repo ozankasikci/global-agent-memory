@@ -222,6 +222,13 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "access_grant": {
+            "description": "Owner-approved temporary protected-memory grant.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "cross_project": {
             "default": false,
             "type": "boolean"
@@ -358,6 +365,13 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "access_grant": {
+            "description": "Owner-approved temporary protected-memory grant.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "cross_project": {
             "default": false,
             "type": "boolean"
@@ -448,6 +462,13 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "access_grant": {
+            "description": "Owner-approved temporary protected-memory grant.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "id": {
             "type": "string"
           },
@@ -653,6 +674,13 @@
           }
         ],
         "properties": {
+          "access_grant": {
+            "description": "Owner-approved temporary protected-memory grant.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "body": {
             "type": "string"
           },
@@ -727,6 +755,13 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "access_grant": {
+            "description": "Owner-approved temporary protected-memory grant.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "destination_override": {
             "type": [
               "string",
@@ -797,6 +832,13 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "access_grant": {
+            "description": "Owner-approved temporary protected-memory grant.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "expected_updated_at": {
             "type": [
               "string",
@@ -882,6 +924,13 @@
           }
         ],
         "properties": {
+          "access_grant": {
+            "description": "Owner-approved temporary protected-memory grant.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "old_id": {
             "type": "string"
           },
@@ -951,6 +1000,13 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "access_grant": {
+            "description": "Owner-approved temporary protected-memory grant.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "hard_delete": {
             "default": false,
             "type": "boolean"
@@ -1131,6 +1187,13 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "access_grant": {
+            "description": "Owner-approved temporary protected-memory grant.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "id": {
             "type": "string"
           }
@@ -1189,6 +1252,147 @@
         "type": "object"
       },
       "name": "memory_dashboard_open",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "contract_version": 1,
+      "description": "Request owner approval for a purpose-bound, temporary protected-memory capability. Agents cannot approve requests.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "agent": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "duration": {
+            "default": "once",
+            "enum": [
+              "once",
+              "task",
+              "15m",
+              "session"
+            ],
+            "type": "string"
+          },
+          "permission": {
+            "default": "read",
+            "enum": [
+              "read",
+              "edit",
+              "manage"
+            ],
+            "type": "string"
+          },
+          "project": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "purpose": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "query": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "working_directory": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "agent",
+          "purpose",
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "memory_access_request",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "const": 1
+          },
+          "data": {},
+          "diagnostics": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "ok": {
+            "const": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract_version",
+          "ok",
+          "data",
+          "warnings",
+          "diagnostics"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "contract_version": 1,
+      "description": "Poll an access request and receive the temporary grant only after the owner approves it.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "type": "object"
+      },
+      "name": "memory_access_status",
       "outputSchema": {
         "additionalProperties": false,
         "properties": {

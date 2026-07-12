@@ -23,6 +23,8 @@ REQUIRED_TOOLS = {
     "memory_reindex",
     "memory_open",
     "memory_dashboard_open",
+    "memory_access_request",
+    "memory_access_status",
     "memory_projects",
     "memory_tags",
 }

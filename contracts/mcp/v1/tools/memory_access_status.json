@@ -1,44 +1,20 @@
 {
   "contract_version": 1,
-  "description": "Archive a durable memory by default, requiring explicit hard-delete intent for destructive removal.",
+  "description": "Poll an access request and receive the temporary grant only after the owner approves it.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
-      "access_grant": {
-        "description": "Owner-approved temporary protected-memory grant.",
-        "type": [
-          "string",
-          "null"
-        ]
-      },
-      "hard_delete": {
-        "default": false,
-        "type": "boolean"
-      },
-      "id": {
-        "type": "string"
-      },
-      "reason": {
-        "minLength": 1,
-        "type": "string"
-      },
       "request_id": {
         "minLength": 1,
         "type": "string"
-      },
-      "verbose": {
-        "default": false,
-        "type": "boolean"
       }
     },
     "required": [
-      "request_id",
-      "id",
-      "reason"
+      "request_id"
     ],
     "type": "object"
   },
-  "name": "memory_archive",
+  "name": "memory_access_status",
   "outputSchema": {
     "additionalProperties": false,
     "properties": {

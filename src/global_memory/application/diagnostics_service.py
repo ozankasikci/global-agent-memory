@@ -188,7 +188,7 @@ def _contract_check() -> DiagnosticCheck:
         path.relative_to(contract_root()).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
         for path in sorted(contract_root().rglob("*.json"))
     }
-    valid = len(discovery["tools"]) == 15 and len(discovery["resources"]) == 10 and len(discovery["prompts"]) == 6
+    valid = len(discovery["tools"]) == 17 and len(discovery["resources"]) == 10 and len(discovery["prompts"]) == 6
     return DiagnosticCheck(
         "contract_hashes", "pass" if valid else "fail", f"{len(hashes)} contract files", {"sha256": hashes}
     )

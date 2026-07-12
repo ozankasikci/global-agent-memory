@@ -20,6 +20,7 @@ from mcp.server.lowlevel.helper_types import ReadResourceContents
 from pydantic import AnyUrl, BaseModel, ValidationError
 
 from global_memory import __version__
+from global_memory.access import AccessService
 from global_memory.application.memory_service import MemoryService
 from global_memory.application.project_service import ProjectService
 from global_memory.domain.models import HardDeleteResult, MemoryDraft, StoredMemory, SupersedeResult
@@ -119,6 +120,7 @@ class ServiceContainer:
     vault_name: str
     watcher_state: str = "not_started"
     dashboard_launcher: Callable[[bool], dict[str, Any]] | None = None
+    access: AccessService | None = None
 
     @property
     def guard(self) -> _MutationGuard:
@@ -139,33 +141,44 @@ def build_container(
     database = opened.database
     repository = VaultRepository(vault_path, state_path / "audit.jsonl")
     indexer = Indexer(vault_path, database)
+    access = AccessService(database, indexer)
     index_jobs = IndexJobQueue(database, indexer)
+    mutations = SQLiteMutationStore(database)
+    vectors = SqliteVecStore(database)
+    embedding_indexer = EmbeddingIndexer(database, vectors)
+
+    def reconcile_access(relative: Path) -> None:
+        row = database.connection.execute(
+            "SELECT id FROM documents WHERE path=? ORDER BY deleted_at IS NULL DESC LIMIT 1",
+            (relative.as_posix(),),
+        ).fetchone()
+        if row is not None:
+            access.reconcile_memory_policy(str(row["id"]))
+
+    def on_change(paths: list[str]) -> None:
+        for relative in paths:
+            path = Path(relative)
+            indexer.index_path(path)
+            reconcile_access(path)
+        if embedding_provider is not None:
+            embedding_indexer.sync(embedding_provider, batch_size=embedding_batch_size)
+
+    def after_index(path: Path) -> None:
+        reconcile_access(path)
+        if embedding_provider is not None:
+            embedding_indexer.sync(embedding_provider, batch_size=embedding_batch_size)
+
+    index_jobs.on_indexed = after_index
     index_jobs.reconcile()
     index_jobs.process_due()
+    if embedding_provider is not None:
+        embedding_indexer.sync(embedding_provider, batch_size=embedding_batch_size)
     if opened.recovered_from is not None:
         database.connection.execute(
             "INSERT INTO index_events(operation, path, status, error_code, details_json, created_at) "
             "VALUES ('recovery', NULL, 'completed', 'INDEX_CORRUPT', ?, datetime('now'))",
             (json.dumps({"quarantined": opened.recovered_from.name}),),
         )
-    mutations = SQLiteMutationStore(database)
-    vectors = SqliteVecStore(database)
-    embedding_indexer = EmbeddingIndexer(database, vectors)
-    if embedding_provider is not None:
-        embedding_indexer.sync(embedding_provider, batch_size=embedding_batch_size)
-
-    def on_change(paths: list[str]) -> None:
-        for relative in paths:
-            indexer.index_path(Path(relative))
-        if embedding_provider is not None:
-            embedding_indexer.sync(embedding_provider, batch_size=embedding_batch_size)
-
-    if embedding_provider is not None:
-
-        def sync_after_index(_path: Path) -> None:
-            embedding_indexer.sync(embedding_provider, batch_size=embedding_batch_size)
-
-        index_jobs.on_indexed = sync_after_index
 
     memory = MemoryService(repository, mutation_store=mutations, on_change=on_change)
     project_registry = SQLiteProjectRegistry(database)
@@ -176,6 +189,7 @@ def build_container(
         embedding_provider=embedding_provider,
         vectors=vectors,
         project_detector=ProjectDetector(project_registry),
+        access=access,
         vault_name=vault_path.name,
     )
     context = ContextPacker(search)
@@ -196,6 +210,7 @@ def build_container(
         index_jobs=index_jobs,
         transport=transport,
         vault_name=vault_path.name,
+        access=access,
     )
 
 
@@ -270,7 +285,7 @@ def _decode_tag_cursor(cursor: str, snapshot: str) -> tuple[int, str]:
 
 
 def _tags(container: ServiceContainer, arguments: dict[str, Any]) -> dict[str, Any]:
-    conditions = ["d.deleted_at IS NULL", "d.status = ?"]
+    conditions = ["d.deleted_at IS NULL", "d.status = ?", "d.visibility = 'standard'"]
     parameters: list[Any] = [arguments.get("status") or "active"]
     if arguments.get("scope"):
         conditions.append("d.scope = ?")
@@ -311,7 +326,7 @@ def _tags(container: ServiceContainer, arguments: dict[str, Any]) -> dict[str, A
 def _documents(container: ServiceContainer, *, where: str, parameters: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
     rows = container.database.connection.execute(
         f"SELECT id, path, title, type, scope, project, status, updated_at FROM documents "
-        f"WHERE deleted_at IS NULL AND {where} ORDER BY updated_at DESC, id LIMIT 100",
+        f"WHERE deleted_at IS NULL AND visibility='standard' AND {where} ORDER BY updated_at DESC, id LIMIT 100",
         parameters,
     ).fetchall()
     return [dict(row) for row in rows]
@@ -352,6 +367,21 @@ def _project_action(container: ServiceContainer, arguments: dict[str, Any]) -> d
     return container.guard.execute(request_id, f"projects:{action}", payload, mutate)
 
 
+def _authorize(
+    container: ServiceContainer,
+    memory_id: str,
+    grant_id: str | None,
+    permission: str,
+) -> StoredMemory:
+    memory = container.memory.get(memory_id)
+    if container.access is None:
+        if memory.metadata.visibility.value != "standard":
+            raise GlobalMemoryError(ErrorCode.ACCESS_APPROVAL_REQUIRED, "This memory requires user approval.")
+        return memory
+    container.access.authorize_memory(memory_id, memory.metadata.visibility.value, grant_id, permission)
+    return memory
+
+
 def _dispatch(container: ServiceContainer, name: str, arguments: dict[str, Any]) -> tuple[Any, list[str]]:
     verbose = bool(arguments.pop("verbose", False))
     diagnostics = ["verbose_requested"] if verbose else []
@@ -362,7 +392,7 @@ def _dispatch(container: ServiceContainer, name: str, arguments: dict[str, Any])
         bundle = container.context.pack(**arguments)
         return _jsonable(bundle), list(bundle.warnings)
     if name == "memory_get":
-        return _jsonable(container.memory.get(arguments["id"])), diagnostics
+        return _jsonable(_authorize(container, arguments["id"], arguments.get("access_grant"), "read")), diagnostics
     if name == "memory_remember":
         request_id = arguments.pop("request_id")
         force = bool(arguments.pop("force", False))
@@ -381,6 +411,20 @@ def _dispatch(container: ServiceContainer, name: str, arguments: dict[str, Any])
         draft = MemoryDraft.model_validate({**arguments, "content": arguments.pop("content")})
         return _jsonable(container.memory.remember(draft, request_id=request_id, force=force)), diagnostics
     if name == "memory_update":
+        patch = arguments.get("metadata_patch") or {}
+        protected_fields = {
+            "visibility",
+            "access_policy",
+            "allowed_projects",
+            "max_permission",
+            "default_permission",
+        }
+        if protected_fields & set(patch):
+            raise GlobalMemoryError(
+                ErrorCode.UNAUTHORIZED,
+                "Agents cannot change memory visibility or access policy. Use the owner dashboard.",
+            )
+        _authorize(container, arguments["id"], arguments.get("access_grant"), "edit")
         return _jsonable(
             container.memory.update(
                 arguments["id"],
@@ -392,6 +436,7 @@ def _dispatch(container: ServiceContainer, name: str, arguments: dict[str, Any])
             )
         ), diagnostics
     if name == "memory_approve":
+        _authorize(container, arguments["id"], arguments.get("access_grant"), "manage")
         return _jsonable(
             container.memory.approve(
                 arguments["id"],
@@ -401,6 +446,7 @@ def _dispatch(container: ServiceContainer, name: str, arguments: dict[str, Any])
             )
         ), diagnostics
     if name == "memory_reject":
+        _authorize(container, arguments["id"], arguments.get("access_grant"), "manage")
         return _jsonable(
             container.memory.reject(
                 arguments["id"],
@@ -410,6 +456,7 @@ def _dispatch(container: ServiceContainer, name: str, arguments: dict[str, Any])
             )
         ), diagnostics
     if name == "memory_supersede":
+        _authorize(container, arguments["old_id"], arguments.get("access_grant"), "manage")
         replacement = MemoryDraft.model_validate(arguments["replacement"]) if arguments.get("replacement") else None
         return _jsonable(
             container.memory.supersede(
@@ -421,6 +468,7 @@ def _dispatch(container: ServiceContainer, name: str, arguments: dict[str, Any])
             )
         ), diagnostics
     if name == "memory_archive":
+        _authorize(container, arguments["id"], arguments.get("access_grant"), "manage")
         return _jsonable(
             container.memory.archive(
                 arguments["id"],
@@ -445,7 +493,7 @@ def _dispatch(container: ServiceContainer, name: str, arguments: dict[str, Any])
 
         return container.guard.execute(arguments["request_id"], "reindex", payload, reindex), diagnostics
     if name == "memory_open":
-        memory = container.memory.get(arguments["id"])
+        memory = _authorize(container, arguments["id"], arguments.get("access_grant"), "read")
         path = memory.relative_path.as_posix()
         return {
             "id": memory.metadata.id,
@@ -463,6 +511,26 @@ def _dispatch(container: ServiceContainer, name: str, arguments: dict[str, Any])
                 remediation="Start the daemon and call memory_dashboard_open through its configured MCP transport.",
             )
         return container.dashboard_launcher(bool(arguments.get("open_browser", True))), diagnostics
+    if name == "memory_access_request":
+        if container.access is None:
+            raise GlobalMemoryError(ErrorCode.DAEMON_UNAVAILABLE, "Access approvals are unavailable.")
+        project = arguments.get("project")
+        working_directory = arguments.get("working_directory")
+        if not project and working_directory:
+            detection = container.projects.detect(Path(working_directory), None)
+            project = detection.project.name if detection.project else None
+        return container.access.request(
+            agent=arguments["agent"],
+            purpose=arguments["purpose"],
+            query=arguments["query"],
+            project=project,
+            permission=arguments.get("permission", "read"),
+            duration=arguments.get("duration", "once"),
+        ), diagnostics
+    if name == "memory_access_status":
+        if container.access is None:
+            raise GlobalMemoryError(ErrorCode.DAEMON_UNAVAILABLE, "Access approvals are unavailable.")
+        return container.access.status(arguments["request_id"]), diagnostics
     if name == "memory_projects":
         return _project_action(container, arguments), diagnostics
     if name == "memory_tags":
@@ -483,7 +551,13 @@ def _resource(container: ServiceContainer, uri: str) -> Any:
         return _tags(container, {})
     prefix = "memory://v1/note/"
     if uri.startswith(prefix):
-        return _jsonable(container.memory.get(unquote(uri.removeprefix(prefix))))
+        memory = container.memory.get(unquote(uri.removeprefix(prefix)))
+        if memory.metadata.visibility.value != "standard":
+            raise GlobalMemoryError(
+                ErrorCode.ACCESS_APPROVAL_REQUIRED,
+                "Protected and sealed memories are not exposed as MCP resources.",
+            )
+        return _jsonable(memory)
     project_prefix = "memory://v1/project/"
     if uri.startswith(project_prefix):
         rest = unquote(uri.removeprefix(project_prefix))

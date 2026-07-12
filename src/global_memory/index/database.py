@@ -131,6 +131,56 @@ CREATE TABLE IF NOT EXISTS index_jobs (
 CREATE INDEX IF NOT EXISTS index_jobs_due ON index_jobs(status, next_attempt_at);
 """
 
+MIGRATION_4 = """
+ALTER TABLE documents ADD COLUMN visibility TEXT NOT NULL DEFAULT 'standard';
+CREATE INDEX IF NOT EXISTS documents_visibility ON documents(visibility, status, project);
+CREATE TABLE IF NOT EXISTS access_requests (
+    id TEXT PRIMARY KEY,
+    agent TEXT NOT NULL,
+    project TEXT NULL,
+    purpose TEXT NOT NULL,
+    permission TEXT NOT NULL,
+    requested_duration TEXT NOT NULL,
+    query TEXT NOT NULL,
+    matched_ids_json TEXT NOT NULL,
+    sealed_match_count INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    resolved_at TEXT NULL,
+    resolution_note TEXT NULL
+);
+CREATE INDEX IF NOT EXISTS access_requests_status ON access_requests(status, created_at);
+CREATE TABLE IF NOT EXISTS access_grants (
+    id TEXT PRIMARY KEY,
+    request_id TEXT NOT NULL REFERENCES access_requests(id),
+    agent TEXT NOT NULL,
+    project TEXT NULL,
+    purpose TEXT NOT NULL,
+    permission TEXT NOT NULL,
+    scope_ids_json TEXT NOT NULL,
+    duration TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NULL,
+    remaining_uses INTEGER NULL
+);
+CREATE INDEX IF NOT EXISTS access_grants_status ON access_grants(status, expires_at);
+CREATE TABLE IF NOT EXISTS access_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_id TEXT NULL,
+    grant_id TEXT NULL,
+    agent TEXT NOT NULL,
+    action TEXT NOT NULL,
+    purpose TEXT NOT NULL,
+    permission TEXT NOT NULL,
+    scope TEXT NOT NULL,
+    actor TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS access_events_created ON access_events(created_at DESC);
+"""
+
 
 @dataclass(frozen=True, slots=True)
 class DatabaseOpenResult:
@@ -177,6 +227,13 @@ class IndexDatabase:
                 "BEGIN IMMEDIATE;\n"
                 + MIGRATION_3
                 + "\nINSERT INTO schema_migrations(version, applied_at) VALUES (3, datetime('now'));\nCOMMIT;"
+            )
+            version = 3
+        if version < 4:
+            self.connection.executescript(
+                "BEGIN IMMEDIATE;\n"
+                + MIGRATION_4
+                + "\nINSERT INTO schema_migrations(version, applied_at) VALUES (4, datetime('now'));\nCOMMIT;"
             )
 
     @contextmanager

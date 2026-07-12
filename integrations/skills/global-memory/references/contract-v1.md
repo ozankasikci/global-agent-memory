@@ -11,6 +11,8 @@ Use this reference only to choose a frozen capability. Discovery remains authori
 - `memory_status`: daemon, index, watcher, vector, conflict, and degradation state.
 - `memory_open`: return the Vault path and encoded Obsidian URI.
 - `memory_dashboard_open`: issue and optionally open a short-lived authenticated local dashboard session.
+- `memory_access_request`: ask the owner for a purpose-bound temporary protected-memory capability without revealing protected metadata.
+- `memory_access_status`: poll a request and receive `access_grant` only after owner approval.
 
 Useful read-only resources include `memory://v1/status`, `memory://v1/projects`, `memory://v1/candidates`, `memory://v1/recent`, `memory://v1/tags`, and the discovered note/project URI templates.
 
@@ -33,8 +35,9 @@ Before debugging a recurring error:
 
 1. Call `memory_context` with the debugging task and working directory.
 2. Call `memory_search` with the exact error string if the bundle lacks it.
-3. Call `memory_get` for the selected result.
-4. Cite the result ID and path if it informs the fix.
+3. If `protected_memory_may_be_relevant` is returned, request the least access required and wait for owner approval. Sealed memory is never agent-readable.
+4. Call `memory_get` for the selected result, passing the approved `access_grant` when required.
+5. Cite the result ID and path if it informs the fix.
 
 After verifying a durable convention:
 

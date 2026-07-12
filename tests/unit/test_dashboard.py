@@ -80,10 +80,56 @@ async def test_dashboard_routes_require_session_and_mutate_through_memory_servic
         approved = await client.post(
             f"/ui/api/memories/{candidate.metadata.id}/approve",
             headers={"X-GAM-Action": "dashboard"},
-            json={"expected_updated_at": candidate.version},
+            json={
+                "expected_updated_at": candidate.version,
+                "visibility": "protected",
+                "access_policy": "user_approval",
+                "allowed_projects": [],
+                "max_permission": "read",
+            },
         )
         assert approved.status_code == 200
         assert approved.json()["data"]["status"] == "active"
+        assert approved.json()["data"]["visibility"] == "protected"
+        assert approved.json()["data"]["allowed_projects"] == ["Alpha"]
+
+        classified = await client.post(
+            f"/ui/api/memories/{candidate.metadata.id}/classify",
+            headers={"X-GAM-Action": "dashboard"},
+            json={
+                "expected_updated_at": approved.json()["data"]["version"],
+                "visibility": "protected",
+                "access_policy": "user_approval",
+                "allowed_projects": ["ignored-for-project-scope"],
+                "max_permission": "manage",
+            },
+        )
+        assert classified.status_code == 200
+        protected = classified.json()["data"]
+        assert protected["max_permission"] == "manage"
+        assert protected["allowed_projects"] == ["Alpha"]
+
+        access_request = container.access.request(
+            agent="Claude Code",
+            purpose="Investigate stable request identifiers",
+            query="stable request identifiers",
+            project="Alpha",
+            permission="manage",
+            duration="task",
+        )
+        refreshed = (await client.get("/ui/api/bootstrap?project=Alpha")).json()["data"]
+        pending = next(item for item in refreshed["access"]["requests"] if item["id"] == access_request["request_id"])
+        assert pending["matches"][0]["title"] == "Use durable IDs"
+        assert pending["matches"][0]["max_permission"] == "manage"
+
+        granted = await client.post(
+            f"/ui/api/access/{access_request['request_id']}/approve",
+            headers={"X-GAM-Action": "dashboard"},
+            json={"permission": "edit", "duration": "15m", "memory_ids": [candidate.metadata.id]},
+        )
+        assert granted.status_code == 200
+        assert granted.json()["data"]["result"]["grant"]["permission"] == "edit"
+        assert granted.json()["data"]["access"]["grants"][0]["scope_count"] == 1
 
         backup = await client.post("/ui/api/backup", headers={"X-GAM-Action": "dashboard"}, json={})
         assert backup.status_code == 200

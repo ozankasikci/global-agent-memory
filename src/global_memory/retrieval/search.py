@@ -12,6 +12,7 @@ from urllib.parse import quote
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from global_memory.access import AccessService
 from global_memory.embeddings.base import EmbeddingProvider
 from global_memory.errors import ErrorCode, GlobalMemoryError
 from global_memory.index.database import IndexDatabase
@@ -40,6 +41,7 @@ class SearchRequest(BaseModel):
     mode: Literal["hybrid", "keyword", "semantic", "metadata"] = "hybrid"
     limit: int = Field(default=10, ge=1, le=100)
     cursor: str | None = None
+    access_grant: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,6 +100,8 @@ class _Candidate:
     importance: float
     updated_at: str
     tags: tuple[str, ...]
+    visibility: str
+    allowed_projects: tuple[str, ...]
     keyword_rank: int | None = None
     semantic_rank: int | None = None
     reasons: list[str] = field(default_factory=list)
@@ -112,6 +116,7 @@ class SearchService:
         embedding_provider: EmbeddingProvider | None = None,
         vectors: VectorStore | None = None,
         project_detector: ProjectDetector | None = None,
+        access: AccessService | None = None,
         vault_name: str = "Global Agent Memory",
         keyword_candidates: int = 50,
         semantic_candidates: int = 50,
@@ -122,6 +127,7 @@ class SearchService:
         self.embedding_provider = embedding_provider
         self.vectors = vectors
         self.project_detector = project_detector
+        self.access = access
         self.vault_name = vault_name
         self.keyword_candidates = keyword_candidates
         self.semantic_candidates = semantic_candidates
@@ -179,6 +185,8 @@ class SearchService:
             importance=float(row["importance"]),
             updated_at=row["updated_at"],
             tags=tuple(metadata.get("tags", [])),
+            visibility=row["visibility"],
+            allowed_projects=tuple(metadata.get("allowed_projects", [])),
         )
 
     @staticmethod
@@ -194,7 +202,23 @@ class SearchService:
             statuses.add("superseded")
         return statuses
 
-    def _allowed(self, candidate: _Candidate, request: SearchRequest, project: str | None) -> bool:
+    def _allowed(
+        self,
+        candidate: _Candidate,
+        request: SearchRequest,
+        project: str | None,
+        protected_ids: set[str],
+    ) -> bool:
+        if candidate.visibility == "sealed":
+            return False
+        if (
+            candidate.visibility == "protected"
+            and candidate.allowed_projects
+            and project not in candidate.allowed_projects
+        ):
+            return False
+        if candidate.visibility == "protected" and candidate.memory_id not in protected_ids:
+            return False
         if candidate.status not in self._status_set(request):
             return False
         if request.scopes and candidate.scope not in request.scopes:
@@ -216,7 +240,7 @@ class SearchService:
         rows = self.database.connection.execute(
             """
             SELECT c.id FROM documents d JOIN chunks c ON c.document_id=d.id AND c.ordinal=0
-            WHERE d.deleted_at IS NULL ORDER BY d.updated_at DESC, d.id
+            WHERE d.deleted_at IS NULL AND d.visibility != 'sealed' ORDER BY d.updated_at DESC, d.id
             """
         ).fetchall()
         candidates = [candidate for row in rows if (candidate := self._fetch_chunk(row["id"])) is not None]
@@ -236,6 +260,17 @@ class SearchService:
         semantic_order: list[str] = []
         warnings: list[str] = []
         mode_used = request.mode
+        protected_ids: set[str] = set()
+        if request.access_grant:
+            if self.access is None:
+                raise GlobalMemoryError(ErrorCode.ACCESS_GRANT_INVALID, "Access grants are unavailable.")
+            protected_ids = self.access.scope_for(
+                request.access_grant,
+                permission="read",
+                project=project,
+                consume=True,
+            )
+        protected_match = False
         if request.mode in {"keyword", "hybrid"}:
             for result in self.keyword.keyword_search(
                 request.query,
@@ -250,7 +285,14 @@ class SearchService:
                 limit=self.keyword_candidates,
             ):
                 candidate = self._fetch_chunk(result.chunk_id)
-                if candidate is None or not self._allowed(candidate, request, project):
+                if (
+                    candidate is not None
+                    and candidate.visibility == "protected"
+                    and (not candidate.allowed_projects or project in candidate.allowed_projects)
+                    and candidate.memory_id not in protected_ids
+                ):
+                    protected_match = True
+                if candidate is None or not self._allowed(candidate, request, project, protected_ids):
                     continue
                 candidate.keyword_rank = len(keyword_order) + 1
                 candidate.reasons.append(f"keyword_rank:{candidate.keyword_rank}")
@@ -258,9 +300,17 @@ class SearchService:
                 keyword_order.append(candidate.chunk_id)
         if request.mode == "metadata":
             for candidate in self._metadata_candidates(request.query):
-                if self._allowed(candidate, request, project):
+                if (
+                    candidate.visibility == "protected"
+                    and (not candidate.allowed_projects or project in candidate.allowed_projects)
+                    and candidate.memory_id not in protected_ids
+                ):
+                    protected_match = True
+                if self._allowed(candidate, request, project, protected_ids):
                     candidate.reasons.append("metadata_match")
                     candidates[candidate.chunk_id] = candidate
+            if protected_match:
+                warnings.append("protected_memory_may_be_relevant")
             return candidates, [], [], warnings, mode_used
         if request.mode in {"semantic", "hybrid"}:
             try:
@@ -278,7 +328,14 @@ class SearchService:
                     limit=self.semantic_candidates,
                 ):
                     candidate = candidates.get(match.chunk_id) or self._fetch_chunk(match.chunk_id)
-                    if candidate is None or not self._allowed(candidate, request, project):
+                    if (
+                        candidate is not None
+                        and candidate.visibility == "protected"
+                        and (not candidate.allowed_projects or project in candidate.allowed_projects)
+                        and candidate.memory_id not in protected_ids
+                    ):
+                        protected_match = True
+                    if candidate is None or not self._allowed(candidate, request, project, protected_ids):
                         continue
                     candidate.semantic_rank = len(semantic_order) + 1
                     candidate.reasons.append(f"semantic_rank:{candidate.semantic_rank}")
@@ -289,6 +346,8 @@ class SearchService:
                     raise
                 warnings.append("semantic_unavailable_keyword_fallback")
                 mode_used = "keyword"
+        if protected_match:
+            warnings.append("protected_memory_may_be_relevant")
         return candidates, keyword_order, semantic_order, warnings, mode_used
 
     def _adjust(self, candidate: _Candidate, project: str | None) -> tuple[float, list[str], list[str]]:
@@ -323,6 +382,8 @@ class SearchService:
         else:
             adjustment += 0.005
             reasons.append("active_status_adjustment")
+        if candidate.visibility == "protected":
+            labels.append("protected")
         return adjustment, reasons, labels
 
     def _results(

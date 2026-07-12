@@ -20,6 +20,13 @@
       }
     ],
     "properties": {
+      "access_grant": {
+        "description": "Owner-approved temporary protected-memory grant.",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
       "old_id": {
         "type": "string"
       },

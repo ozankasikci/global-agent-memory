@@ -1,4 +1,4 @@
-import type { DashboardData, MemoryRecord, MemoryUpdate } from "@/types"
+import type { AccessState, ClassificationUpdate, DashboardData, MemoryRecord, MemoryUpdate } from "@/types"
 
 interface Envelope<T> {
   ok: boolean
@@ -34,10 +34,10 @@ export const dashboardApi = {
     const query = project ? `?project=${encodeURIComponent(project)}` : ""
     return request<DashboardData>(`/bootstrap${query}`)
   },
-  approve(memory: MemoryRecord) {
+  approve(memory: MemoryRecord, classification: ClassificationUpdate) {
     return request<MemoryRecord>(`/memories/${encodeURIComponent(memory.id)}/approve`, {
       method: "POST",
-      body: JSON.stringify({ expected_updated_at: memory.version }),
+      body: JSON.stringify({ expected_updated_at: memory.version, ...classification }),
     })
   },
   reject(memory: MemoryRecord, reason: string) {
@@ -83,6 +83,24 @@ export const dashboardApi = {
     return request<{ file_uri: string }>(`/memories/${encodeURIComponent(memory.id)}/open-file`, {
       method: "POST",
       body: "{}",
+    })
+  },
+  classify(memory: MemoryRecord, classification: ClassificationUpdate) {
+    return request<MemoryRecord>(`/memories/${encodeURIComponent(memory.id)}/classify`, {
+      method: "POST",
+      body: JSON.stringify({ expected_updated_at: memory.version, ...classification }),
+    })
+  },
+  unlock(memory: MemoryRecord, purpose: string) {
+    return request<MemoryRecord>(`/memories/${encodeURIComponent(memory.id)}/unlock`, {
+      method: "POST",
+      body: JSON.stringify({ purpose }),
+    })
+  },
+  accessAction(identifier: string, action: "approve" | "deny" | "revoke", body: object = {}) {
+    return request<{ result: unknown; access: AccessState }>(`/access/${encodeURIComponent(identifier)}/${action}`, {
+      method: "POST",
+      body: JSON.stringify(body),
     })
   },
 }

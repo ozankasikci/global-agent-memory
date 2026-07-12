@@ -40,6 +40,7 @@ class KeywordResult:
     heading_path: str | None
     keyword_rank: int
     updated_at: str
+    visibility: str
 
 
 class Indexer:
@@ -165,14 +166,14 @@ class Indexer:
             """
             INSERT INTO documents(
                 id, path, title, type, scope, project, status, confidence, importance,
-                created_at, updated_at, content_hash, metadata_json, indexed_at, deleted_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+                created_at, updated_at, content_hash, metadata_json, indexed_at, deleted_at, visibility
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
             ON CONFLICT(id) DO UPDATE SET
                 path=excluded.path, title=excluded.title, type=excluded.type, scope=excluded.scope,
                 project=excluded.project, status=excluded.status, confidence=excluded.confidence,
                 importance=excluded.importance, created_at=excluded.created_at, updated_at=excluded.updated_at,
                 content_hash=excluded.content_hash, metadata_json=excluded.metadata_json,
-                indexed_at=excluded.indexed_at, deleted_at=NULL
+                indexed_at=excluded.indexed_at, deleted_at=NULL, visibility=excluded.visibility
             """,
             (
                 metadata.id,
@@ -189,8 +190,12 @@ class Indexer:
                 content_hash,
                 json.dumps(values, ensure_ascii=False, sort_keys=True),
                 now,
+                metadata.visibility.value,
             ),
         )
+        if metadata.visibility.value == "sealed":
+            self._event("upsert", path, "completed", None, {"id": metadata.id, "chunks": 0, "sealed": True})
+            return
         chunks = chunk_markdown(
             metadata.title,
             note.body,
@@ -245,10 +250,18 @@ class Indexer:
         cross_project: bool = False,
         include_archive_scope: bool = False,
         apply_default_scope: bool = False,
+        visibilities: list[str] | None = None,
         limit: int = 10,
     ) -> list[KeywordResult]:
         if re.fullmatch(r"mem_[A-Za-z0-9_-]+", query):
-            return self.metadata_search(memory_id=query, project=project, scopes=scopes, types=types, statuses=statuses)
+            return self.metadata_search(
+                memory_id=query,
+                project=project,
+                scopes=scopes,
+                types=types,
+                statuses=statuses,
+                visibilities=visibilities,
+            )
         tokens = re.findall(r"[\w-]+", query, flags=re.UNICODE)
         if not tokens:
             return []
@@ -267,6 +280,9 @@ class Indexer:
             if selected:
                 conditions.append(f"{column} IN ({','.join('?' for _ in selected)})")
                 parameters.extend(selected)
+        if visibilities:
+            conditions.append(f"d.visibility IN ({','.join('?' for _ in visibilities)})")
+            parameters.extend(visibilities)
         for tag in tags or []:
             conditions.append("EXISTS (SELECT 1 FROM json_each(d.metadata_json, '$.tags') WHERE value = ?)")
             parameters.append(tag)
@@ -324,6 +340,7 @@ class Indexer:
                 heading_path=row["heading_path"],
                 keyword_rank=rank,
                 updated_at=row["updated_at"],
+                visibility=row["visibility"],
             )
             for rank, row in enumerate(rows, start=1)
         ]
@@ -337,6 +354,7 @@ class Indexer:
         types: list[str] | None = None,
         statuses: list[str] | None = None,
         tags: list[str] | None = None,
+        visibilities: list[str] | None = None,
         limit: int = 10,
     ) -> list[KeywordResult]:
         """Retrieve from normalized metadata without requiring FTS terms."""
@@ -355,6 +373,9 @@ class Indexer:
         for tag in tags or []:
             conditions.append("EXISTS (SELECT 1 FROM json_each(d.metadata_json, '$.tags') WHERE value = ?)")
             parameters.append(tag)
+        if visibilities:
+            conditions.append(f"d.visibility IN ({','.join('?' for _ in visibilities)})")
+            parameters.extend(visibilities)
         parameters.append(max(1, min(limit, 100)))
         rows = self.database.connection.execute(
             f"""
@@ -381,6 +402,7 @@ class Indexer:
                 heading_path=row["heading_path"],
                 keyword_rank=rank,
                 updated_at=row["updated_at"],
+                visibility=row["visibility"],
             )
             for rank, row in enumerate(rows, start=1)
         ]

@@ -108,12 +108,16 @@ def _summary(body: str) -> str:
 
 
 def _related(memory: StoredMemory, memories: list[StoredMemory]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    if memory.metadata.status is not MemoryStatus.CANDIDATE:
+    if memory.metadata.status is not MemoryStatus.CANDIDATE or memory.metadata.visibility.value == "sealed":
         return [], []
     duplicates: list[dict[str, Any]] = []
     conflicts: list[dict[str, Any]] = []
     for other in memories:
-        if other.metadata.id == memory.metadata.id or other.metadata.status is not MemoryStatus.ACTIVE:
+        if (
+            other.metadata.id == memory.metadata.id
+            or other.metadata.status is not MemoryStatus.ACTIVE
+            or other.metadata.visibility.value == "sealed"
+        ):
             continue
         title_score = SequenceMatcher(None, memory.metadata.title.casefold(), other.metadata.title.casefold()).ratio()
         shared_tags = set(memory.metadata.tags) & set(other.metadata.tags)
@@ -139,29 +143,39 @@ def _related(memory: StoredMemory, memories: list[StoredMemory]) -> tuple[list[d
     return sorted(duplicates, key=lambda item: item["similarity"], reverse=True)[:3], conflicts[:3]
 
 
-def serialize_memory(memory: StoredMemory, memories: list[StoredMemory]) -> dict[str, Any]:
+def serialize_memory(
+    memory: StoredMemory,
+    memories: list[StoredMemory],
+    *,
+    unlock_sealed: bool = False,
+) -> dict[str, Any]:
     duplicates, conflicts = _related(memory, memories)
     metadata = memory.metadata
+    sealed = metadata.visibility.value == "sealed" and not unlock_sealed
     return {
         "id": metadata.id,
-        "title": metadata.title,
+        "title": "Sealed memory" if sealed else metadata.title,
         "type": metadata.type,
         "scope": metadata.scope.value,
         "project": metadata.project,
         "status": metadata.status.value,
+        "visibility": metadata.visibility.value,
+        "access_policy": metadata.access_policy,
+        "allowed_projects": metadata.allowed_projects,
+        "max_permission": metadata.max_permission.value,
         "confidence": metadata.confidence,
         "importance": metadata.importance,
         "created_at": metadata.created_at.isoformat(),
         "updated_at": metadata.updated_at.isoformat(),
-        "tags": metadata.tags,
-        "links": metadata.links,
+        "tags": [] if sealed else metadata.tags,
+        "links": [] if sealed else metadata.links,
         "source_kind": metadata.source_kind,
         "source_ref": metadata.source_ref,
-        "body": memory.body,
-        "summary": _summary(memory.body),
-        "evidence": _extract_section(memory.body, "Evidence"),
-        "path": str(memory.path),
-        "relative_path": memory.relative_path.as_posix(),
+        "body": "" if sealed else memory.body,
+        "summary": "Unlock once to view this memory. Access will be recorded." if sealed else _summary(memory.body),
+        "evidence": None if sealed else _extract_section(memory.body, "Evidence"),
+        "path": "" if sealed else str(memory.path),
+        "relative_path": "" if sealed else memory.relative_path.as_posix(),
         "version": memory.version,
         "possible_duplicates": duplicates,
         "conflicts": conflicts,
@@ -220,6 +234,41 @@ def _services(container: Any, status: dict[str, Any]) -> list[dict[str, str]]:
 
 def _error_response(error: GlobalMemoryError, *, status_code: int = 400) -> JSONResponse:
     return JSONResponse(failure(error), status_code=status_code)
+
+
+def _classification_patch(container: Any, memory: StoredMemory, payload: dict[str, Any]) -> dict[str, Any]:
+    visibility = str(payload["visibility"])
+    if visibility not in {"standard", "protected", "sealed"}:
+        raise GlobalMemoryError(ErrorCode.NOTE_INVALID, "Unsupported memory visibility.")
+    if visibility == "protected":
+        access_policy = str(payload.get("access_policy") or "user_approval")
+        allowed_projects = list(payload.get("allowed_projects") or [])
+        max_permission = str(payload.get("max_permission") or "read")
+        if memory.metadata.scope.value == "project":
+            allowed_projects = [memory.metadata.project] if memory.metadata.project else []
+        else:
+            known_projects = {project.name for project in container.projects.list()}
+            unknown = sorted(set(allowed_projects) - known_projects)
+            if unknown:
+                raise GlobalMemoryError(
+                    ErrorCode.PROJECT_NOT_FOUND,
+                    "The access policy contains an unknown project.",
+                    details={"projects": unknown},
+                )
+    elif visibility == "sealed":
+        access_policy = "per_access"
+        allowed_projects = []
+        max_permission = "read"
+    else:
+        access_policy = "user_approval"
+        allowed_projects = []
+        max_permission = "read"
+    return {
+        "visibility": visibility,
+        "access_policy": access_policy,
+        "allowed_projects": allowed_projects,
+        "max_permission": max_permission,
+    }
 
 
 def dashboard_routes(container: Any, sessions: DashboardSessions) -> list[Any]:
@@ -330,6 +379,9 @@ def dashboard_routes(container: Any, sessions: DashboardSessions) -> list[Any]:
                 "status": status,
                 "services": _services(container, status),
                 "activity": _activity(container, all_memories),
+                "access": container.access.dashboard_state()
+                if container.access is not None
+                else {"requests": [], "grants": [], "events": []},
             }
             return JSONResponse(success(data))
         except GlobalMemoryError as error:
@@ -356,9 +408,20 @@ def dashboard_routes(container: Any, sessions: DashboardSessions) -> list[Any]:
                     body=payload.get("body"),
                 )
             elif action == "approve":
+                expected_updated_at = payload.get("expected_updated_at")
+                if "visibility" in payload:
+                    memory = container.memory.get(memory_id)
+                    classified = container.memory.update(
+                        memory_id,
+                        str(expected_updated_at),
+                        request_id=request_id,
+                        metadata_patch=_classification_patch(container, memory, payload),
+                    )
+                    expected_updated_at = classified.metadata.updated_at.isoformat()
+                    request_id = str(uuid.uuid4())
                 result = container.memory.approve(
                     memory_id,
-                    payload.get("expected_updated_at"),
+                    expected_updated_at,
                     request_id=request_id,
                 )
             elif action == "reject":
@@ -412,6 +475,86 @@ def dashboard_routes(container: Any, sessions: DashboardSessions) -> list[Any]:
         destination = backup_vault(container.vault_path, container.state_path / "backups" / name)
         return JSONResponse(success({"path": str(destination)}))
 
+    async def classify(request: Request) -> Response:
+        if not mutation_allowed(request):
+            return _error_response(
+                GlobalMemoryError(ErrorCode.UNAUTHORIZED, "The dashboard action is unauthorized."), status_code=401
+            )
+        try:
+            payload = await request.json()
+            memory = container.memory.get(request.path_params["memory_id"])
+            result = container.memory.update(
+                memory.metadata.id,
+                str(payload["expected_updated_at"]),
+                request_id=str(uuid.uuid4()),
+                metadata_patch=_classification_patch(container, memory, payload),
+            )
+            if container.access is not None:
+                container.access.reconcile_memory_policy(result.metadata.id)
+            return JSONResponse(success(serialize_memory(result, container.memory.list_memories())))
+        except KeyError as error:
+            return _error_response(
+                GlobalMemoryError(
+                    ErrorCode.NOTE_INVALID, "A classification field is missing.", details={"field": str(error)}
+                )
+            )
+        except (GlobalMemoryError, ValidationError) as error:
+            mapped = (
+                error
+                if isinstance(error, GlobalMemoryError)
+                else GlobalMemoryError(
+                    ErrorCode.NOTE_INVALID, "The classification is invalid.", details={"errors": error.errors()}
+                )
+            )
+            return _error_response(mapped, status_code=409 if mapped.code is ErrorCode.VERSION_CONFLICT else 400)
+
+    async def unlock_sealed(request: Request) -> Response:
+        if not mutation_allowed(request):
+            return _error_response(
+                GlobalMemoryError(ErrorCode.UNAUTHORIZED, "The dashboard action is unauthorized."), status_code=401
+            )
+        try:
+            payload = await request.json()
+            purpose = str(payload.get("purpose") or "Owner review")
+            memory = container.memory.get(request.path_params["memory_id"])
+            if memory.metadata.visibility.value != "sealed":
+                raise GlobalMemoryError(ErrorCode.NOTE_INVALID, "This memory is not sealed.")
+            if container.access is not None:
+                container.access.record_sealed_unlock(memory_id=memory.metadata.id, purpose=purpose)
+            return JSONResponse(success(serialize_memory(memory, container.memory.list_memories(), unlock_sealed=True)))
+        except GlobalMemoryError as error:
+            return _error_response(error, status_code=404 if error.code is ErrorCode.NOTE_NOT_FOUND else 400)
+
+    async def access_action(request: Request) -> Response:
+        if not mutation_allowed(request):
+            return _error_response(
+                GlobalMemoryError(ErrorCode.UNAUTHORIZED, "The dashboard action is unauthorized."), status_code=401
+            )
+        if container.access is None:
+            return _error_response(
+                GlobalMemoryError(ErrorCode.DAEMON_UNAVAILABLE, "Access approvals are unavailable."), status_code=503
+            )
+        try:
+            payload = await request.json()
+            action = request.path_params["action"]
+            identifier = request.path_params["identifier"]
+            if action == "approve":
+                result = container.access.approve(
+                    identifier,
+                    duration=str(payload.get("duration") or "once"),
+                    permission=str(payload.get("permission") or "read"),
+                    memory_ids=[str(memory_id) for memory_id in payload.get("memory_ids") or []],
+                )
+            elif action == "deny":
+                result = container.access.deny(identifier, reason=str(payload.get("reason") or "Denied by owner"))
+            elif action == "revoke":
+                result = container.access.revoke(identifier)
+            else:
+                raise GlobalMemoryError(ErrorCode.NOTE_INVALID, "Unsupported access action.")
+            return JSONResponse(success({"result": result, "access": container.access.dashboard_state()}))
+        except GlobalMemoryError as error:
+            return _error_response(error, status_code=409 if error.code is ErrorCode.VERSION_CONFLICT else 400)
+
     async def open_obsidian(request: Request) -> Response:
         if not mutation_allowed(request):
             return _error_response(
@@ -421,6 +564,14 @@ def dashboard_routes(container: Any, sessions: DashboardSessions) -> list[Any]:
             memory = container.memory.get(request.path_params["memory_id"])
         except GlobalMemoryError as error:
             return _error_response(error, status_code=404)
+        if memory.metadata.visibility.value == "sealed":
+            return _error_response(
+                GlobalMemoryError(
+                    ErrorCode.ACCESS_APPROVAL_REQUIRED,
+                    "Unlock the sealed memory in the dashboard first.",
+                ),
+                status_code=403,
+            )
         path = memory.relative_path.as_posix()
         uri = f"obsidian://open?vault={quote(container.vault_name, safe='')}&file={quote(path, safe='')}"
         webbrowser.open(uri)
@@ -435,6 +586,14 @@ def dashboard_routes(container: Any, sessions: DashboardSessions) -> list[Any]:
             memory = container.memory.get(request.path_params["memory_id"])
         except GlobalMemoryError as error:
             return _error_response(error, status_code=404)
+        if memory.metadata.visibility.value == "sealed":
+            return _error_response(
+                GlobalMemoryError(
+                    ErrorCode.ACCESS_APPROVAL_REQUIRED,
+                    "Unlock the sealed memory in the dashboard first.",
+                ),
+                status_code=403,
+            )
         uri = memory.path.as_uri()
         webbrowser.open(uri)
         return JSONResponse(success({"file_uri": uri}))
@@ -445,11 +604,14 @@ def dashboard_routes(container: Any, sessions: DashboardSessions) -> list[Any]:
         Route("/ui/session", exchange, methods=["GET"]),
         Route("/ui/api/bootstrap", bootstrap, methods=["GET"]),
         Route("/ui/api/memories/{memory_id:str}", mutate, methods=["PATCH"]),
+        Route("/ui/api/memories/{memory_id:str}/classify", classify, methods=["POST"]),
+        Route("/ui/api/memories/{memory_id:str}/unlock", unlock_sealed, methods=["POST"]),
         Route("/ui/api/memories/{memory_id:str}/open-obsidian", open_obsidian, methods=["POST"]),
         Route("/ui/api/memories/{memory_id:str}/open-file", open_file, methods=["POST"]),
         Route("/ui/api/memories/{memory_id:str}/{action:str}", mutate, methods=["POST"]),
         Route("/ui/api/reindex", reindex, methods=["POST"]),
         Route("/ui/api/backup", backup, methods=["POST"]),
+        Route("/ui/api/access/{identifier:str}/{action:str}", access_action, methods=["POST"]),
     ]
     assets = root / "assets"
     if assets.is_dir():

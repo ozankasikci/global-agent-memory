@@ -6,6 +6,10 @@ function memory(overrides: Partial<MemoryRecord> & Pick<MemoryRecord, "id" | "ti
   return {
     scope: "project",
     project: "Naila",
+    visibility: "standard",
+    access_policy: "user_approval",
+    allowed_projects: [],
+    max_permission: "read",
     confidence: 0.82,
     importance: 0.7,
     created_at: now,
@@ -91,6 +95,11 @@ const active = [
   memory({ id: "mem_active_secrets", title: "Secrets live in 1Password, never in Git", type: "preference", status: "active", confidence: 0.92, summary: "Runtime secrets are loaded from 1Password.", body: "# Preference\n\nNever commit secret-bearing env files.", tags: ["security", "secrets"] }),
 ]
 
+active.push(
+  memory({ id: "mem_protected_topology", title: "Production deployment topology", type: "reference", status: "active", visibility: "protected", access_policy: "user_approval", max_permission: "manage", allowed_projects: ["Naila"], summary: "Protected infrastructure context.", body: "# Reference\n\nProduction deployment topology and service boundaries.", tags: ["infrastructure"] }),
+  memory({ id: "mem_sealed_oncall", title: "Sealed memory", type: "reference", status: "active", visibility: "sealed", summary: "Unlock once to view this memory. Access will be recorded.", body: "", path: "", relative_path: "", tags: [] }),
+)
+
 export const fixtureDashboard: DashboardData = {
   projects: [{ id: "proj_naila", name: "Naila", aliases: [], roots: ["/Users/ozan/Projects/naila"], git_remotes: [], organization: null, active: true }],
   project_stats: { Naila: { memories: active.length, candidates: candidates.length } },
@@ -121,4 +130,9 @@ export const fixtureDashboard: DashboardData = {
     { actor: "claude-code", action: "proposed", target: "Linux ARM64 deployment workflow", created_at: now, kind: "candidate_created" },
     { actor: "codex", action: "proposed", target: "TypeScript strict mode is enabled repo-wide", created_at: "2026-07-10T11:00:00Z", kind: "candidate_created" },
   ],
+  access: {
+    requests: [{ id: "req_demo", agent: "Claude Code", project: "Naila", purpose: "Investigate a production deployment failure", permission: "manage", requested_duration: "task", sealed_match_count: 1, matched_count: 1, matches: [{ id: "mem_protected_topology", title: "Production deployment topology", type: "reference", project: "Naila", access_policy: "user_approval", max_permission: "manage", eligible: true }], status: "pending", created_at: now, resolved_at: null, resolution_note: null }],
+    grants: [],
+    events: [{ id: 1, request_id: "req_demo", grant_id: null, agent: "Claude Code", action: "requested", purpose: "Investigate a production deployment failure", permission: "read", scope: "1 protected match", actor: "agent", status: "pending", created_at: now }],
+  },
 }

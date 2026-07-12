@@ -44,7 +44,7 @@ def setup_index(tmp_path: Path) -> tuple[IndexDatabase, Indexer]:
 def test_real_sqlite_vec_store_orders_cosine_matches(tmp_path: Path) -> None:
     database = IndexDatabase(tmp_path / "vectors.db")
     database.connection.execute(
-        "INSERT INTO documents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)",
+        "INSERT INTO documents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)",
         (
             "mem_a",
             "a.md",
@@ -56,6 +56,7 @@ def test_real_sqlite_vec_store_orders_cosine_matches(tmp_path: Path) -> None:
             1,
             1,
             NOW.isoformat(),
+            "standard",
             NOW.isoformat(),
             "a",
             "{}",

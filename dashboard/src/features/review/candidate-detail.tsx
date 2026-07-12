@@ -4,14 +4,16 @@ import { toast } from "sonner"
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import type { MemoryRecord, MemoryUpdate } from "@/types"
+import { cn } from "@/lib/utils"
+import type { ClassificationUpdate, MemoryRecord, MemoryUpdate, MemoryVisibility } from "@/types"
 
 interface CandidateDetailProps {
   candidate: MemoryRecord | null
   position: string
-  onApprove: (candidate: MemoryRecord) => Promise<MemoryRecord>
+  onApprove: (candidate: MemoryRecord, classification: ClassificationUpdate) => Promise<MemoryRecord>
   onReject: (candidate: MemoryRecord, reason: string) => Promise<MemoryRecord>
   onUpdate: (candidate: MemoryRecord, patch: MemoryUpdate) => Promise<MemoryRecord>
   onOpenMemory: (id: string) => void
@@ -23,6 +25,8 @@ export function CandidateDetail({ candidate, position, onApprove, onReject, onUp
   const [mode, setMode] = useState<"view" | "edit">("view")
   const [showRelated, setShowRelated] = useState(false)
   const [rejectOpen, setRejectOpen] = useState(false)
+  const [approveOpen, setApproveOpen] = useState(false)
+  const [approveVisibility, setApproveVisibility] = useState<MemoryVisibility>("standard")
   const [rejectReason, setRejectReason] = useState("Outdated")
   const [rejectNote, setRejectNote] = useState("")
   const [busy, setBusy] = useState(false)
@@ -32,6 +36,8 @@ export function CandidateDetail({ candidate, position, onApprove, onReject, onUp
     setMode("view")
     setShowRelated(false)
     setRejectOpen(false)
+    setApproveOpen(false)
+    setApproveVisibility("standard")
     setDraft(null)
   }, [candidate?.id])
 
@@ -51,6 +57,9 @@ export function CandidateDetail({ candidate, position, onApprove, onReject, onUp
       if (event.key.toLowerCase() === "e") {
         event.preventDefault()
         startEdit()
+      } else if (event.key.toLowerCase() === "a") {
+        event.preventDefault()
+        openApproval()
       } else if (event.key.toLowerCase() === "r") {
         event.preventDefault()
         setRejectOpen(true)
@@ -68,6 +77,28 @@ export function CandidateDetail({ candidate, position, onApprove, onReject, onUp
       toast.error(error instanceof Error ? error.message : "The memory action failed.")
     } finally {
       setBusy(false)
+    }
+  }
+
+  function openApproval() {
+    setApproveVisibility("standard")
+    setApproveOpen(true)
+  }
+
+  function approvalClassification(): ClassificationUpdate {
+    if (approveVisibility === "protected") {
+      return {
+        visibility: "protected",
+        access_policy: "user_approval",
+        allowed_projects: candidate?.scope === "project" && candidate.project ? [candidate.project] : [],
+        max_permission: "read",
+      }
+    }
+    return {
+      visibility: approveVisibility,
+      access_policy: approveVisibility === "sealed" ? "per_access" : "user_approval",
+      allowed_projects: [],
+      max_permission: "read",
     }
   }
 
@@ -102,7 +133,7 @@ export function CandidateDetail({ candidate, position, onApprove, onReject, onUp
       <div className="shrink-0 border-t border-subtle bg-background">
         <div className="gam-column flex items-center gap-[22px] px-10 py-4">
           {mode === "view" ? <>
-            <Button disabled={busy} onClick={() => void run(() => onApprove(candidate))} className="h-9 bg-foreground px-[22px] font-semibold text-background hover:bg-foreground/90"><Check weight="bold" />Approve</Button>
+            <Button disabled={busy} onClick={openApproval} className="h-9 bg-foreground px-[22px] font-semibold text-background hover:bg-foreground/90"><Check weight="bold" />Approve</Button>
             <Button disabled={busy} variant="link" onClick={startEdit} className="h-auto p-0 font-normal text-muted-foreground hover:text-foreground">Edit</Button>
             <Button disabled={busy} variant="link" onClick={() => setRejectOpen(true)} className="h-auto p-0 font-normal text-muted-foreground hover:text-foreground">Reject</Button>
             <div className="ml-auto flex gap-[18px]">
@@ -110,7 +141,7 @@ export function CandidateDetail({ candidate, position, onApprove, onReject, onUp
               <Button variant="link" onClick={onNext} className="h-auto p-0 text-[13px] font-normal text-faint hover:text-muted-foreground">next<ArrowRight /></Button>
             </div>
           </> : <>
-            <Button disabled={busy || !draft} onClick={() => void run(async () => { if (!draft) return; const updated = await onUpdate(candidate, draft); await onApprove(updated) })} className="h-9 bg-foreground px-[22px] font-semibold text-background hover:bg-foreground/90"><FloppyDisk />Save & approve</Button>
+            <Button disabled={busy || !draft} onClick={() => void run(async () => { if (!draft) return; await onUpdate(candidate, draft); openApproval() })} className="h-9 bg-foreground px-[22px] font-semibold text-background hover:bg-foreground/90"><FloppyDisk />Save & approve</Button>
             <Button variant="link" onClick={() => setMode("view")} className="h-auto p-0 font-normal text-muted-foreground">Cancel</Button>
           </>}
         </div>
@@ -124,9 +155,40 @@ export function CandidateDetail({ candidate, position, onApprove, onReject, onUp
           <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => void run(() => onReject(candidate, `${rejectReason}${rejectNote ? ` — ${rejectNote}` : ""}`))}>Reject candidate</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={approveOpen} onOpenChange={setApproveOpen}>
+        <DialogContent className="max-w-[520px] gap-0 rounded-[14px] border-border bg-[#0d0d10] p-0 sm:max-w-[520px]" showCloseButton={false}>
+          <div className="px-7 pb-[26px] pt-6">
+            <DialogHeader className="gap-0">
+              <span className="mb-1.5 text-[13px] text-faint">Approve memory</span>
+              <DialogTitle className="text-[19px] font-semibold leading-[1.35] tracking-[-0.01em]">{candidate.title}</DialogTitle>
+              <DialogDescription className="mb-[18px] mt-1 text-[13.5px] leading-5">Choose how visible this memory is to agents before it&apos;s saved.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-[9px]">
+              {approvalVisibilityOptions.map((option) => (
+                <button key={option.value} type="button" onClick={() => setApproveVisibility(option.value)} className={cn("w-full rounded-[10px] border px-[15px] py-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40", approveVisibility === option.value ? "border-foreground" : "border-border hover:border-faint")}>
+                  <span className="block text-[14.5px] font-medium text-foreground">{option.label}</span>
+                  <span className="mt-1 block text-[12.5px] leading-5 text-muted-foreground">{option.description}</span>
+                </button>
+              ))}
+            </div>
+            {approveVisibility !== "standard" && <p className="mt-3 text-[12.5px] leading-5 text-warning-foreground">Protected and sealed are for sensitive knowledge—never store credentials, passwords, or API keys.</p>}
+            <DialogFooter className="mx-0 mb-0 mt-[22px] flex-row justify-start gap-5 rounded-none border-0 bg-transparent p-0">
+              <Button disabled={busy} onClick={() => void run(async () => { await onApprove(candidate, approvalClassification()); setApproveOpen(false) })} className="h-10 px-[26px]">Approve</Button>
+              <Button variant="link" disabled={busy} onClick={() => setApproveOpen(false)} className="h-auto p-0 font-normal text-muted-foreground">Cancel</Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }
+
+const approvalVisibilityOptions: Array<{ value: MemoryVisibility; label: string; description: string }> = [
+  { value: "standard", label: "Standard", description: "Agents can read it automatically in ordinary search." },
+  { value: "protected", label: "Protected", description: "Excluded from agent search; access needs your approval." },
+  { value: "sealed", label: "Sealed", description: "Hidden until you unlock; every access is confirmed." },
+]
 
 export function EditForm({ draft, onChange }: { draft: MemoryUpdate; onChange: (next: MemoryUpdate) => void }) {
   return <div className="space-y-4"><Input value={draft.title} onChange={(event) => onChange({ ...draft, title: event.target.value })} className="h-auto rounded-none border-x-0 border-t-0 border-subtle bg-transparent px-0 pb-2 text-2xl font-semibold text-foreground shadow-none focus-visible:ring-0" /><Textarea value={draft.body} onChange={(event) => onChange({ ...draft, body: event.target.value })} className="min-h-[280px] resize-y border-subtle bg-card text-[15px] leading-7" /><div className="grid grid-cols-2 gap-3"><Input type="number" min="0" max="1" step="0.05" value={draft.confidence} onChange={(event) => onChange({ ...draft, confidence: Number(event.target.value) })} /><Input type="number" min="0" max="1" step="0.05" value={draft.importance} onChange={(event) => onChange({ ...draft, importance: Number(event.target.value) })} /></div></div>

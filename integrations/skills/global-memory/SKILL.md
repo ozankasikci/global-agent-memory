@@ -15,8 +15,9 @@ Use the canonical MCP capability names. Do not assume a client-specific server p
 1. Derive the project from the current working directory. Pass `working_directory`; add `project` only when the user supplied or confirmed it.
 2. Call `memory_context` with the concrete task before broad searches. Keep `cross_project=false` unless the user explicitly requests comparison or wider scope.
 3. Use `memory_search` for a prior decision, exact ID, symbol, error string, convention, or known solution that the context bundle did not answer.
-4. Use `memory_get` before relying on, citing, or changing one result. Treat status and applicability labels as constraints, not decoration.
-5. When memory materially informs the work, cite its memory ID and Vault-relative path in the response or handoff.
+4. If retrieval returns `protected_memory_may_be_relevant`, do not guess at hidden metadata. Call `memory_access_request` with the concrete purpose, query, resolved project, least required permission, and shortest useful duration. Tell the user a request is waiting in the dashboard, where they choose the exact memories and may reduce the requested permission or duration. Poll `memory_access_status`, then pass an approved `access_grant` only to the operation it was requested for.
+5. Use `memory_get` before relying on, citing, or changing one result. Treat status and applicability labels as constraints, not decoration.
+6. When memory materially informs the work, cite its memory ID and Vault-relative path in the response or handoff.
 
 Do not turn retrieval into ceremony for trivial work. If the available context is sufficient and no durable history could change the answer, proceed.
 
@@ -25,6 +26,8 @@ Do not turn retrieval into ceremony for trivial work. If the available context i
 When the user explicitly asks to open, show, or launch the Global Agent Memory dashboard, call `memory_dashboard_open`
 with `open_browser=true`. Do not invent a URL or substitute Obsidian. The tool issues a short-lived authenticated local
 session and opens the dashboard through the shared daemon.
+
+Agents never approve, deny, or revoke access requests. Sealed memories are owner-only and cannot be retrieved through MCP. Never store credentials or secrets as memory.
 
 ## Keep project isolation
 

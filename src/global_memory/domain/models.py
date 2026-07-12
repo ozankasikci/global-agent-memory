@@ -8,7 +8,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 SUPPORTED_MEMORY_TYPES = {
     "project",
@@ -43,6 +43,22 @@ class MemoryStatus(StrEnum):
     REJECTED = "rejected"
 
 
+class MemoryVisibility(StrEnum):
+    """Who may discover or read a memory through agent-facing surfaces."""
+
+    STANDARD = "standard"
+    PROTECTED = "protected"
+    SEALED = "sealed"
+
+
+class MemoryPermission(StrEnum):
+    """Maximum operation allowed by a temporary access grant."""
+
+    READ = "read"
+    EDIT = "edit"
+    MANAGE = "manage"
+
+
 class MemoryMetadata(BaseModel):
     """Managed YAML properties while preserving unknown future properties."""
 
@@ -54,6 +70,13 @@ class MemoryMetadata(BaseModel):
     scope: MemoryScope
     project: str | None = None
     status: MemoryStatus
+    visibility: MemoryVisibility = MemoryVisibility.STANDARD
+    access_policy: str = "user_approval"
+    allowed_projects: list[str] = Field(default_factory=list)
+    max_permission: MemoryPermission = Field(
+        default=MemoryPermission.READ,
+        validation_alias=AliasChoices("max_permission", "default_permission"),
+    )
     confidence: float = Field(ge=0.0, le=1.0)
     importance: float = Field(ge=0.0, le=1.0)
     created_at: datetime
@@ -80,6 +103,8 @@ class MemoryMetadata(BaseModel):
             raise ValueError("updated_at cannot be earlier than created_at")
         if self.status is MemoryStatus.ACTIVE and self.superseded_by is not None:
             raise ValueError("active memory cannot have superseded_by")
+        if self.access_policy not in {"user_approval", "per_access"}:
+            raise ValueError("access_policy must be user_approval or per_access")
         return self
 
 

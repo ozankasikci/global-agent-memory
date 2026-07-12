@@ -13,6 +13,7 @@ OUT = ROOT / "contracts" / "mcp" / "v1"
 STRING = {"type": "string"}
 REQUEST_ID = {"type": "string", "minLength": 1}
 OPT_STRING = {"type": ["string", "null"]}
+ACCESS_GRANT = {"type": ["string", "null"], "description": "Owner-approved temporary protected-memory grant."}
 STRING_ARRAY = {"type": "array", "items": {"type": "string"}, "uniqueItems": True}
 PROJECT_FIELDS = {
     "project": OPT_STRING,
@@ -110,6 +111,7 @@ TOOLS = [
                 },
                 "limit": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10},
                 "cursor": OPT_STRING,
+                "access_grant": ACCESS_GRANT,
             },
             ["query"],
         ),
@@ -125,6 +127,7 @@ TOOLS = [
                 "cross_project": {"type": "boolean", "default": False},
                 "types": STRING_ARRAY,
                 "tags": STRING_ARRAY,
+                "access_grant": ACCESS_GRANT,
             },
             ["task"],
         ),
@@ -132,7 +135,7 @@ TOOLS = [
     tool(
         "memory_get",
         "Read one memory with metadata, body, links, lifecycle state, and concurrency version.",
-        obj({"id": STRING, "verbose": {"type": "boolean", "default": False}}, ["id"]),
+        obj({"id": STRING, "access_grant": ACCESS_GRANT, "verbose": {"type": "boolean", "default": False}}, ["id"]),
     ),
     tool(
         "memory_remember",
@@ -169,6 +172,7 @@ TOOLS = [
                 "metadata_patch": {"type": "object"},
                 "body": STRING,
                 "section_patch": {"type": "object", "additionalProperties": {"type": "string"}},
+                "access_grant": ACCESS_GRANT,
                 "verbose": {"type": "boolean", "default": False},
             },
             ["request_id", "id", "expected_updated_at"],
@@ -186,6 +190,7 @@ TOOLS = [
                 "id": STRING,
                 "expected_updated_at": OPT_STRING,
                 "destination_override": OPT_STRING,
+                "access_grant": ACCESS_GRANT,
                 "verbose": {"type": "boolean", "default": False},
             },
             ["request_id", "id"],
@@ -200,6 +205,7 @@ TOOLS = [
                 "id": STRING,
                 "reason": {"type": "string", "minLength": 1},
                 "expected_updated_at": OPT_STRING,
+                "access_grant": ACCESS_GRANT,
                 "verbose": {"type": "boolean", "default": False},
             },
             ["request_id", "id", "reason"],
@@ -215,6 +221,7 @@ TOOLS = [
                 "replacement_id": STRING,
                 "replacement": {"type": "object"},
                 "reason": {"type": "string", "minLength": 1},
+                "access_grant": ACCESS_GRANT,
                 "verbose": {"type": "boolean", "default": False},
             },
             ["request_id", "old_id", "reason"],
@@ -230,6 +237,7 @@ TOOLS = [
                 "id": STRING,
                 "reason": {"type": "string", "minLength": 1},
                 "hard_delete": {"type": "boolean", "default": False},
+                "access_grant": ACCESS_GRANT,
                 "verbose": {"type": "boolean", "default": False},
             },
             ["request_id", "id", "reason"],
@@ -256,12 +264,34 @@ TOOLS = [
     tool(
         "memory_open",
         "Return a memory filesystem path and encoded Obsidian URI without launching external software.",
-        obj({"id": STRING}, ["id"]),
+        obj({"id": STRING, "access_grant": ACCESS_GRANT}, ["id"]),
     ),
     tool(
         "memory_dashboard_open",
         "Open the authenticated local Global Agent Memory dashboard after an explicit user request.",
         obj({"open_browser": {"type": "boolean", "default": True}}),
+    ),
+    tool(
+        "memory_access_request",
+        "Request owner approval for a purpose-bound, temporary protected-memory capability. "
+        "Agents cannot approve requests.",
+        obj(
+            {
+                "agent": {"type": "string", "minLength": 1},
+                "purpose": {"type": "string", "minLength": 1},
+                "query": {"type": "string", "minLength": 1},
+                "project": OPT_STRING,
+                "working_directory": OPT_STRING,
+                "permission": {"type": "string", "enum": ["read", "edit", "manage"], "default": "read"},
+                "duration": {"type": "string", "enum": ["once", "task", "15m", "session"], "default": "once"},
+            },
+            ["agent", "purpose", "query"],
+        ),
+    ),
+    tool(
+        "memory_access_status",
+        "Poll an access request and receive the temporary grant only after the owner approves it.",
+        obj({"request_id": REQUEST_ID}, ["request_id"]),
     ),
     tool(
         "memory_projects",

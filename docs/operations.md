@@ -50,7 +50,15 @@ global-memory dashboard
 global-memory dashboard --no-open
 ```
 
-The dashboard provides project overview, one-at-a-time candidate review and editing, duplicate/conflict comparison, memory search, project switching, system status, reindexing, timestamped Vault backups, and links to canonical Markdown. The launch URL expires after 60 seconds, can be exchanged only once, and creates a local HttpOnly session. Do not share the URL. The UI is served only by the localhost daemon and its private JSON endpoints are not a public integration contract.
+The dashboard provides project overview, one-at-a-time candidate review and editing, duplicate/conflict comparison, memory search, access-request approval, temporary grant revocation, audited sealed-memory unlocks, project switching, system status, reindexing, timestamped Vault backups, and links to canonical Markdown. The launch URL expires after 60 seconds, can be exchanged only once, and creates a local HttpOnly session. Do not share the URL. The UI is served only by the localhost daemon and its private JSON endpoints are not a public integration contract.
+
+Visibility is fail-closed across MCP tools and resources:
+
+- **Standard** memories participate in normal retrieval.
+- **Protected** memories may produce only the neutral warning `protected_memory_may_be_relevant`. An agent calls `memory_access_request`, waits while the owner reviews it in **Access**, polls `memory_access_status`, and passes the returned `access_grant` to the supported read/edit/manage tool.
+- **Sealed** memories are not indexed by body and cannot be retrieved by agents. The owner may unlock one dashboard view; that access is recorded.
+
+Access grants are purpose-, project-, permission-, memory-, and duration-scoped. The owner selects the exact protected matches, may downgrade but never elevate the requested permission, and may shorten but never extend the requested duration. A protected memory may set a Read/Edit/Manage maximum, restrict eligible projects, and force approval for every retrieval. One-retrieval grants are consumed on first use; other grants can be revoked immediately. Tightening a memory policy revokes incompatible active grants. Agents can request and poll, but cannot approve, deny, or revoke. Never store credentials, passwords, private keys, or API keys in memory, including sealed memory.
 
 ## Diagnose and recover
 
