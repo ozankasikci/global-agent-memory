@@ -1,0 +1,99 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "global-memory-mcp"
+version = "0.1.1"
+description = "Local-first, project-aware durable memory through a versioned MCP interface"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Global Agent Memory contributors" }]
+dependencies = [
+  "httpx>=0.28,<1",
+  "mcp>=1.12,<2",
+  "platformdirs>=4.3,<5",
+  "pydantic>=2.11,<3",
+  "pydantic-settings>=2.10,<3",
+  "pyyaml>=6.0,<7",
+  "sqlite-vec>=0.1.9,<0.2",
+  "starlette>=0.47,<2",
+  "structlog>=25.4,<26",
+  "typer>=0.16,<1",
+  "uvicorn>=0.35,<1",
+  "watchdog>=6.0,<7",
+]
+
+[project.scripts]
+global-memory = "global_memory.cli:main"
+global-memoryd = "global_memory.mcp.daemon:main"
+global-memory-mcp = "global_memory.mcp.stdio_proxy:main"
+
+[dependency-groups]
+dev = [
+  "coverage[toml]>=7.9,<8",
+  "hypothesis>=6.136,<7",
+  "jsonschema>=4.24,<5",
+  "mypy>=1.17,<2",
+  "pre-commit>=4.2,<5",
+  "pytest>=8.4,<9",
+  "pytest-asyncio>=1.1,<2",
+  "pytest-cov>=6.2,<7",
+  "ruff>=0.12,<1",
+  "types-pyyaml>=6.0,<7",
+  "types-jsonschema>=4.24,<5",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/global_memory"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"contracts/mcp/v1" = "global_memory/_contract/mcp/v1"
+"integrations" = "global_memory/_integration"
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests"]
+markers = [
+  "contract: frozen MCP V1 contract tests",
+  "integration: tests crossing adapter boundaries",
+  "e2e: end-to-end daemon and proxy tests",
+  "performance: opt-in performance regression tests",
+  "live: target-machine client acceptance tests",
+]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+branch = true
+source = ["global_memory"]
+omit = [
+  "src/global_memory/cli.py",
+  "src/global_memory/mcp/daemon.py",
+  "src/global_memory/mcp/stdio_proxy.py",
+  "src/global_memory/mcp/client.py",
+  "src/global_memory/mcp/daemon_control.py",
+  "src/global_memory/index/watcher.py",
+  "src/global_memory/integrations/verify.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 85
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+extend-exclude = ["contracts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "ASYNC"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["global_memory"]
