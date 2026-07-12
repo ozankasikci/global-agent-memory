@@ -1,0 +1,16 @@
+.DS_Store
+.coverage
+.hypothesis/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+*.egg-info/
+build/
+dist/
+htmlcov/
+node_modules/
+.npm-cache/
+.tmp/
+/design-qa.md
