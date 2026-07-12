@@ -1,8 +1,15 @@
 # Codex integration
 
-Initialize and start Global Agent Memory first, then install:
+The guided setup detects Codex and installs this integration automatically:
 
 ```shell
+global-memory setup
+```
+
+To select Codex explicitly or repair only its managed integration:
+
+```shell
+global-memory setup --clients codex
 global-memory integrations install codex
 global-memory integrations status codex
 global-memory integrations verify codex

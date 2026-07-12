@@ -1,8 +1,15 @@
 # Claude Code integration
 
-Initialize and start Global Agent Memory first, then install at user scope:
+The guided setup detects Claude Code and installs this integration automatically:
 
 ```shell
+global-memory setup
+```
+
+To select Claude Code explicitly or repair only its managed integration:
+
+```shell
+global-memory setup --clients claude-code
 global-memory integrations install claude-code
 global-memory integrations status claude-code
 global-memory integrations verify claude-code

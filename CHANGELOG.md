@@ -4,6 +4,19 @@ All notable changes are recorded here.
 
 ## Unreleased
 
+### Added
+
+- Add an idempotent `global-memory setup` command that initializes the default Vault,
+  installs the native user service, detects and connects supported coding agents,
+  verifies healthy clients, handles broken client wrappers through the guarded fallback,
+  and opens the authenticated dashboard after one confirmation.
+
+### Changed
+
+- Make guided setup the primary README and operations path while keeping every
+  individual initialization, service, integration, verification, and diagnostic
+  command available for advanced use and repair.
+
 ## 0.1.2 - 2026-07-12
 
 ### Added

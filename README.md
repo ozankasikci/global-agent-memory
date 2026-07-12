@@ -94,54 +94,46 @@ Obsidian, the dashboard, or both without creating separate copies of your memory
 - Optional: [Obsidian](https://obsidian.md/) for browsing the Markdown Vault
 - Optional: [Ollama](https://ollama.com/) for semantic retrieval
 
-### 1. Install from source
+### 1. Install
 
 ```shell
-git clone https://github.com/ozankasikci/global-agent-memory.git
-cd global-agent-memory
-uv tool install .
+uv tool install git+https://github.com/ozankasikci/global-agent-memory.git
 ```
 
-### 2. Initialize the local Vault
+For a local checkout, use `uv tool install .` instead.
+
+### 2. Run guided setup
 
 ```shell
-global-memory init --vault "$HOME/Documents/Global Agent Memory"
-global-memory config validate
-global-memory doctor
+global-memory setup
 ```
 
-Initialization is idempotent. It creates missing managed folders, local configuration,
-and a protected bearer token while preserving existing Vault content.
+Setup shows one plan and asks once before it changes anything. It initializes the local
+Vault, creates the protected token, installs and starts the native per-user service,
+detects Claude Code and Codex, installs their MCP integrations and skills, verifies
+healthy clients, and opens the dashboard. The command is idempotent, so running it again
+repairs or updates managed components without replacing unrelated client configuration.
 
-### 3. Start the shared daemon
-
-Run it immediately:
+Use flags when you need a non-default setup:
 
 ```shell
-global-memory daemon start
+# Non-interactive installation
+global-memory setup --yes
+
+# Choose a different Vault on first setup
+global-memory setup --vault "$HOME/Memory"
+
+# Install only one client, or no client yet
+global-memory setup --clients claude-code
+global-memory setup --clients none
+
+# Preview without changing files or services
+global-memory setup --dry-run
 ```
 
-Or install an auto-start service:
+### 3. Use the installed agent shortcuts
 
-```shell
-# macOS
-global-memory daemon install-service --kind launchd
-
-# Linux
-global-memory daemon install-service --kind systemd
-```
-
-### 4. Connect your agents
-
-```shell
-global-memory integrations install all
-global-memory integrations status all
-global-memory integrations verify all
-```
-
-Install one client instead with `claude-code` or `codex` in place of `all`.
-
-The integration also installs five basic agent shortcuts:
+Setup installs five basic shortcuts for each detected client:
 
 | Shortcut | Purpose |
 | --- | --- |
@@ -155,7 +147,7 @@ In Claude Code, invoke them directly, for example `/gam-context fix the upload r
 In Codex, type `/skills` and choose one, or mention it directly, for example
 `$gam-context fix the upload retry bug`.
 
-### 5. Open the dashboard
+### 4. Open the dashboard again
 
 ```shell
 global-memory dashboard
@@ -167,6 +159,18 @@ You can also ask a connected agent:
 
 The agent calls `memory_dashboard_open` and opens the same authenticated local
 dashboard.
+
+### Manual installation and repair
+
+The individual commands remain available for advanced setups and troubleshooting:
+
+```shell
+global-memory init --vault "$HOME/Documents/Global Agent Memory"
+global-memory daemon install-service --kind launchd  # use systemd on Linux
+global-memory integrations install all
+global-memory integrations verify all
+global-memory doctor
+```
 
 ## Using it with an agent
 

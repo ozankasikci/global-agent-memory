@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import asyncio
 import json
+import shutil
+import sys
+import time
 import uuid
 from argparse import Namespace
 from dataclasses import asdict
 from pathlib import Path
 from typing import Annotated, Any, Never
 
+import httpx
 import typer
 from rich import print_json
 
@@ -18,7 +22,7 @@ from global_memory.application.diagnostics_service import run_diagnostics
 from global_memory.config import get_platform_paths, load_settings
 from global_memory.domain.models import SUPPORTED_MEMORY_TYPES
 from global_memory.errors import ErrorCode, GlobalMemoryError
-from global_memory.integrations.manager import ClientName, IntegrationManager
+from global_memory.integrations.manager import SPECS, ClientName, IntegrationManager
 from global_memory.integrations.verify import verify_client
 from global_memory.mcp.client import call_http_tool
 from global_memory.mcp.contract import load_discovery
@@ -103,6 +107,183 @@ def _call_runtime(
     print_json(data=envelope)
     if not envelope.get("ok"):
         raise typer.Exit(code=2)
+
+
+def _setup_targets(target: str, manager: IntegrationManager) -> list[ClientName]:
+    if target == "none":
+        return []
+    if target != "auto":
+        return _integration_targets(target)
+    detected: list[ClientName] = []
+    for client, spec in SPECS.items():
+        status = manager.status(client)
+        if shutil.which(spec.executable) is not None or bool(status["managed"]):
+            detected.append(client)
+    return detected
+
+
+def _setup_service_kind() -> str:
+    if sys.platform == "darwin":
+        return "launchd"
+    if sys.platform.startswith("linux"):
+        return "systemd"
+    raise GlobalMemoryError(
+        ErrorCode.CONFIG_INVALID,
+        "Automatic background-service setup supports macOS and Linux.",
+        remediation="Run setup with --no-service and start the daemon manually.",
+    )
+
+
+def _wait_for_setup_daemon(endpoint: str, *, timeout: float = 10) -> None:
+    health_url = endpoint.removesuffix("/mcp/") + "/health/ready"
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            response = httpx.get(health_url, timeout=0.5)
+            payload = response.json()
+            if response.status_code == 200 and isinstance(payload, dict) and payload.get("status") == "ready":
+                return
+        except (httpx.HTTPError, ValueError):
+            pass
+        time.sleep(0.1)
+    raise GlobalMemoryError(
+        ErrorCode.DAEMON_UNAVAILABLE,
+        "The background service did not become ready during setup.",
+        retryable=True,
+        remediation="Inspect the service logs, then run `global-memory doctor` and retry setup.",
+    )
+
+
+@app.command("setup")
+def setup_command(
+    vault: Annotated[
+        Path | None,
+        typer.Option("--vault", resolve_path=True, help="Vault path; defaults to ~/Documents/Global Agent Memory."),
+    ] = None,
+    clients: Annotated[
+        str,
+        typer.Option("--clients", help="auto, all, claude-code, codex, or none."),
+    ] = "auto",
+    service: Annotated[
+        bool,
+        typer.Option("--service/--no-service", help="Install the native per-user background service."),
+    ] = True,
+    verify: Annotated[
+        bool,
+        typer.Option("--verify/--no-verify", help="Run live acceptance for healthy detected clients."),
+    ] = True,
+    open_dashboard: Annotated[
+        bool,
+        typer.Option("--open-dashboard/--no-open-dashboard", help="Open the dashboard after setup."),
+    ] = True,
+    copy: Annotated[bool, typer.Option("--copy", help="Copy agent skills instead of symlinking them.")] = False,
+    with_global_instructions: Annotated[
+        bool,
+        typer.Option("--with-global-instructions", help="Add the managed global instruction block."),
+    ] = False,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Preview setup without changing files or services.")
+    ] = False,
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Accept the displayed setup plan.")] = False,
+) -> None:
+    """Initialize, connect detected agents, verify them, and open the dashboard."""
+    paths = get_platform_paths()
+    selected_vault = (vault or (Path.home() / "Documents/Global Agent Memory")).expanduser().resolve()
+    try:
+        if paths.config_file.exists():
+            settings = load_settings(paths.config_file)
+            if vault is not None and selected_vault != settings.vault_path.resolve():
+                raise GlobalMemoryError(
+                    ErrorCode.CONFIG_INVALID,
+                    "Setup cannot replace the Vault path in an existing configuration.",
+                    details={"configured": str(settings.vault_path), "requested": str(selected_vault)},
+                    remediation=(
+                        "Omit --vault to repair the current installation or update the configuration explicitly."
+                    ),
+                )
+        else:
+            settings = load_settings(None, {"vault_path": str(selected_vault)})
+        manager = IntegrationManager(
+            Path.home(),
+            paths.data_dir,
+            endpoint=f"http://{settings.mcp.host}:{settings.mcp.port}/mcp/",
+            token_file=paths.auth_token,
+        )
+        targets = _setup_targets(clients, manager)
+        service_kind = _setup_service_kind() if service else None
+    except GlobalMemoryError as error:
+        _fail(error)
+
+    target_label = ", ".join(targets) if targets else "none detected"
+    typer.echo("Global Agent Memory setup")
+    typer.echo(f"Vault: {settings.vault_path}")
+    typer.echo(f"Agent integrations: {target_label}")
+    typer.echo(f"Background service: {service_kind or 'disabled'}")
+    typer.echo(f"Live verification: {'enabled' if verify else 'disabled'}")
+    typer.echo(f"Open dashboard: {'yes' if open_dashboard else 'no'}")
+    if dry_run:
+        typer.echo("Dry run complete. No changes were made.")
+        return
+    if not yes and not typer.confirm("Continue?"):
+        typer.echo("Setup cancelled.")
+        return
+
+    try:
+        initialized = initialize(settings, paths)
+        typer.echo(f"[ok] Vault {'initialized' if initialized.created else 'ready'}: {initialized.vault_path}")
+
+        if service_kind is not None:
+            service_file = render_service_file(
+                service_kind,
+                config_file=paths.config_file,
+                home=Path.home(),
+            )
+            install_service(service_file)
+            enable_service(service_file)
+            _wait_for_setup_daemon(manager.endpoint)
+            typer.echo(f"[ok] {service_kind} service installed and ready")
+        else:
+            state = start_daemon(settings, paths)
+            typer.echo(f"[ok] Daemon ready for this login session: {state.endpoint}")
+
+        for client in targets:
+            installed = manager.install(
+                client,
+                copy=copy,
+                with_global_instructions=with_global_instructions,
+            )
+            typer.echo(f"[ok] {client} connected: {installed.skill_path}")
+
+        if verify:
+            for client in targets:
+                status = manager.status(client)
+                if not status["client_available"]:
+                    if not (status["skill_valid"] and status["commands_valid"] and status["mcp_registered"]):
+                        raise GlobalMemoryError(
+                            ErrorCode.INTEGRATION_VERIFY_FAILED,
+                            f"The {client} fallback integration is incomplete.",
+                        )
+                    typer.echo(
+                        f"[warning] {client} configured, but its executable could not be run; live check skipped"
+                    )
+                    continue
+                report = asyncio.run(verify_client(manager, client))
+                if not report.ok:
+                    raise GlobalMemoryError(
+                        ErrorCode.INTEGRATION_VERIFY_FAILED,
+                        f"The {client} live setup verification failed.",
+                        details={"checks": report.checks},
+                        remediation="Run `global-memory integrations verify "
+                        + client
+                        + "` after repairing the client.",
+                    )
+                typer.echo(f"[ok] {client} verified")
+
+        if open_dashboard:
+            dashboard_command(no_open=False, endpoint=None, token_file=None, config_file=None)
+        typer.echo("Setup complete.")
+    except GlobalMemoryError as error:
+        _fail(error)
 
 
 @app.command("init")

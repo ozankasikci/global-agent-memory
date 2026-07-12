@@ -2,15 +2,46 @@
 
 ## Install and initialize
 
-Install from a wheel or package index into an isolated Python 3.12+ environment, then initialize an absolute Vault:
+Install into an isolated Python 3.12+ environment, then run the guided setup:
+
+```shell
+uv tool install git+https://github.com/ozankasikci/global-agent-memory.git
+global-memory setup
+```
+
+`setup` displays one plan and asks once before it changes anything. By default it uses
+`~/Documents/Global Agent Memory`, installs the native launchd or systemd user service,
+connects detected Claude Code and Codex installations, runs live verification for
+healthy clients, and opens the dashboard. It is idempotent and preserves unrelated
+client configuration.
+
+Useful setup variants:
+
+```shell
+global-memory setup --dry-run
+global-memory setup --yes
+global-memory setup --vault "$HOME/Memory"
+global-memory setup --clients claude-code
+global-memory setup --clients none --no-service --no-open-dashboard
+```
+
+When an existing configuration is present, `--vault` must match its configured Vault.
+Setup never silently repoints an installation. A detected but unhealthy client
+executable uses the guarded configuration fallback and is reported as not live-verified.
+
+For manual installation or repair, the individual commands remain available:
 
 ```shell
 global-memory init --vault "$HOME/Documents/Global Agent Memory"
 global-memory config validate
+global-memory daemon install-service --kind launchd  # use systemd on Linux
+global-memory integrations install all
+global-memory integrations verify all
 global-memory doctor
 ```
 
-Initialization is idempotent. It preserves existing README, templates, dashboards, and configuration, and creates the bearer token with user-only permissions.
+Initialization preserves existing README, templates, dashboards, and configuration,
+and creates the bearer token with user-only permissions.
 
 ## Run the service
 
