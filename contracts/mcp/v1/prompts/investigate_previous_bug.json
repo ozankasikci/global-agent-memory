@@ -1,0 +1,23 @@
+{
+  "arguments": [
+    {
+      "description": "Error text, identifier, or symptom.",
+      "name": "query",
+      "required": true
+    },
+    {
+      "description": "Explicit project when known.",
+      "name": "project",
+      "required": false
+    },
+    {
+      "description": "Current local working directory.",
+      "name": "working_directory",
+      "required": false
+    }
+  ],
+  "contract_version": 1,
+  "description": "Investigate prior occurrences of an exact error, symptom, or solution within safe project scope.",
+  "messageTemplate": "Use memory_search for exact identifiers and previous solutions; do not enable cross-project search implicitly. Cite every materially used memory by immutable ID and Vault-relative path. Do not write memory automatically.",
+  "name": "investigate_previous_bug"
+}
