@@ -1,0 +1,10 @@
+{
+  "contract_version": 1,
+  "description": "Read current service, Vault, generated-index, and fallback health without exposing secrets.",
+  "mimeType": "application/json",
+  "name": "status",
+  "responseSchema": {
+    "$ref": "schemas/success-envelope.json"
+  },
+  "uriTemplate": "memory://v1/status"
+}
