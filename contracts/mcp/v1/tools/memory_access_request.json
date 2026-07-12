@@ -1,0 +1,91 @@
+{
+  "contract_version": 1,
+  "description": "Request owner approval for a purpose-bound, temporary protected-memory capability. Agents cannot approve requests.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "agent": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "duration": {
+        "default": "once",
+        "enum": [
+          "once",
+          "task",
+          "15m",
+          "session"
+        ],
+        "type": "string"
+      },
+      "permission": {
+        "default": "read",
+        "enum": [
+          "read",
+          "edit",
+          "manage"
+        ],
+        "type": "string"
+      },
+      "project": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "purpose": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "query": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "working_directory": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "required": [
+      "agent",
+      "purpose",
+      "query"
+    ],
+    "type": "object"
+  },
+  "name": "memory_access_request",
+  "outputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "contract_version": {
+        "const": 1
+      },
+      "data": {},
+      "diagnostics": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "ok": {
+        "const": true
+      },
+      "warnings": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "contract_version",
+      "ok",
+      "data",
+      "warnings",
+      "diagnostics"
+    ],
+    "type": "object"
+  }
+}
