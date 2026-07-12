@@ -93,7 +93,7 @@ def test_native_service_enable_and_disable_commands(tmp_path: Path, kind: str, m
         calls.append((command, check))
         return subprocess.CompletedProcess(command, 1 if command[1:2] == ["print"] else 0)
 
-    monkeypatch.setattr("global_memory.operations.subprocess.run", record)
+    monkeypatch.setattr("global_memory.operations.native_services.subprocess.run", record)
     enabled = enable_service(service)
     disabled = disable_service(service)
 
@@ -121,8 +121,8 @@ def test_launchd_enable_waits_for_the_previous_job_to_finish_unloading(
         calls.append(command)
         return subprocess.CompletedProcess(command, next(print_results) if command[1:2] == ["print"] else 0)
 
-    monkeypatch.setattr("global_memory.operations.subprocess.run", record)
-    monkeypatch.setattr("global_memory.operations.time.sleep", lambda _seconds: None)
+    monkeypatch.setattr("global_memory.operations.native_services.subprocess.run", record)
+    monkeypatch.setattr("global_memory.operations.native_services.time.sleep", lambda _seconds: None)
 
     enable_service(service)
 
@@ -146,8 +146,8 @@ def test_launchd_enable_retries_bootstrap_during_the_async_removal_window(
             return subprocess.CompletedProcess(command, next(bootstrap_results))
         return subprocess.CompletedProcess(command, 0)
 
-    monkeypatch.setattr("global_memory.operations.subprocess.run", record)
-    monkeypatch.setattr("global_memory.operations.time.sleep", lambda _seconds: None)
+    monkeypatch.setattr("global_memory.operations.native_services.subprocess.run", record)
+    monkeypatch.setattr("global_memory.operations.native_services.time.sleep", lambda _seconds: None)
 
     enable_service(service)
 
@@ -161,7 +161,7 @@ def test_package_change_uses_active_interpreter_and_pinned_rollback(monkeypatch:
         assert check
         commands.append(command)
 
-    monkeypatch.setattr("global_memory.operations.subprocess.run", record)
+    monkeypatch.setattr("global_memory.operations.packages.subprocess.run", record)
     from global_memory.operations import package_change
 
     package_change()
@@ -172,10 +172,10 @@ def test_package_change_uses_active_interpreter_and_pinned_rollback(monkeypatch:
 
 def test_package_change_supports_uv_managed_environments_without_pip(monkeypatch: pytest.MonkeyPatch) -> None:
     commands: list[list[str]] = []
-    monkeypatch.setattr("global_memory.operations.importlib.util.find_spec", lambda _name: None)
-    monkeypatch.setattr("global_memory.operations.shutil.which", lambda _name: "/usr/local/bin/uv")
+    monkeypatch.setattr("global_memory.operations.packages.importlib.util.find_spec", lambda _name: None)
+    monkeypatch.setattr("global_memory.operations.packages.shutil.which", lambda _name: "/usr/local/bin/uv")
     monkeypatch.setattr(
-        "global_memory.operations.subprocess.run",
+        "global_memory.operations.packages.subprocess.run",
         lambda command, *, check: commands.append(command),
     )
     from global_memory.operations import package_change

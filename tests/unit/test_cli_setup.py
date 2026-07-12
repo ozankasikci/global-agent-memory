@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
-import global_memory.cli as cli
+import global_memory.cli.application as cli
 from global_memory.config import PlatformPaths
 from global_memory.integrations.manager import ClientName
 from global_memory.vault.initialize import InitializationResult

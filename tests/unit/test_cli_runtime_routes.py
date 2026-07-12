@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
-import global_memory.cli as cli
+import global_memory.cli.application as cli
 from global_memory.domain.models import SUPPORTED_MEMORY_TYPES
 
 

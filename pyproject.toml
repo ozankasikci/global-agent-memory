@@ -68,7 +68,7 @@ asyncio_mode = "auto"
 branch = true
 source = ["global_memory"]
 omit = [
-  "src/global_memory/cli.py",
+  "src/global_memory/cli/**",
   "src/global_memory/mcp/daemon.py",
   "src/global_memory/mcp/stdio_proxy.py",
   "src/global_memory/mcp/client.py",
