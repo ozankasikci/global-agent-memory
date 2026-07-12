@@ -25,6 +25,8 @@ def test_fresh_wheel_contains_contract_and_console_entry_points(tmp_path: Path) 
             "assert (Path(global_memory.__file__).parent / '_dashboard/index.html').is_file(); "
             "from global_memory.integrations.manager import integration_root; "
             "assert (integration_root() / 'skills/global-memory/SKILL.md').is_file(); "
+            "assert (integration_root() / 'skills/gam-context/SKILL.md').is_file(); "
+            "assert (integration_root() / 'skills/gam-dashboard/SKILL.md').is_file(); "
             "import global_memory.cli",
         ],
         check=True,

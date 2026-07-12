@@ -37,47 +37,49 @@ export function AccessScreen({
 
   return (
     <section className="gam-scroll min-h-0 flex-1 overflow-y-auto">
-      <div className="gam-column px-10 pb-28 pt-9 gam-fade-in">
-        <div className="mb-10">
-          <h1 className="text-[22px] font-semibold tracking-[-0.02em]">Access</h1>
-          <p className="mt-2 text-[13px] leading-5 text-faint">Agents can request protected memory. Only you can approve access.</p>
+      <div className="gam-column px-5 pb-28 pt-9 gam-fade-in sm:px-10">
+        <div className="mb-[38px]">
+          <h1 className="text-[26px] font-semibold tracking-[-0.01em]">Access</h1>
+          <p className="mt-2 text-sm leading-[1.55] text-muted-foreground">Agents can request access to protected memory. Only you can approve, and every grant is temporary and scoped.</p>
         </div>
 
         <SectionLabel>Pending requests</SectionLabel>
-        <div className="mb-11 border-t border-subtle">
+        <div className="mb-[38px]">
           {pending.map((request) => (
-            <button key={request.id} type="button" onClick={() => setSelected(request)} className="group flex w-full items-start justify-between gap-5 border-b border-subtle py-[18px] text-left">
-              <div className="min-w-0">
-                <div className="text-[15px] font-medium text-foreground">{request.agent}</div>
+            <button key={request.id} type="button" onClick={() => setSelected(request)} className="group flex w-full items-center gap-3.5 border-b border-subtle py-4 text-left">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning-foreground" />
+              <div className="min-w-0 flex-1">
+                <div className="text-[15.5px] font-semibold text-foreground">{request.agent} · requesting protected memory</div>
                 <div className="mt-1 text-[13px] leading-5 text-muted-foreground">{request.purpose}</div>
-                <div className="mt-1 text-[12.5px] text-faint">{request.project ?? "Shared memory"} · requested {permissionLabel(request.permission)} for {durationLabel(request.requested_duration).toLowerCase()} · {formatRelative(request.created_at)}</div>
+                <div className="mt-0.5 text-[12.5px] text-faint">{permissionLabel(request.permission).toLowerCase()} · {request.matched_count} protected · {request.sealed_match_count} sealed · {formatRelative(request.created_at)}</div>
               </div>
-              <span className="mt-0.5 shrink-0 text-[13px] text-muted-foreground group-hover:text-foreground">Review →</span>
+              <span className="shrink-0 text-[13.5px] text-foreground">Review &amp; approve →</span>
             </button>
           ))}
-          {!pending.length && <EmptyRow>No requests are waiting.</EmptyRow>}
+          {!pending.length && <EmptyRow>No requests waiting for you.</EmptyRow>}
         </div>
 
         <SectionLabel>Active grants</SectionLabel>
-        <div className="mb-11 border-t border-subtle">
+        <div className="mb-[38px]">
           {active.map((grant) => (
-            <div key={grant.id} className="flex items-start justify-between gap-5 border-b border-subtle py-[18px]">
-              <div>
-                <div className="text-[14.5px] font-medium">{grant.agent} · {permissionLabel(grant.permission)}</div>
-                <div className="mt-1 text-[13px] text-muted-foreground">{grant.purpose}</div>
-                <div className="mt-1 text-[12.5px] text-faint">{grant.scope_count} protected {grant.scope_count === 1 ? "memory" : "memories"} · {durationLabel(grant.duration)}</div>
+            <div key={grant.id} className="border-b border-subtle py-4">
+              <div className="flex items-baseline gap-3">
+                <div className="min-w-0 flex-1 text-[15.5px] font-semibold text-foreground">{grant.agent}</div>
+                <div className="shrink-0 text-[13px] text-success">{permissionLabel(grant.permission).toLowerCase()} access · {durationLabel(grant.duration).toLowerCase()}</div>
               </div>
-              <Button variant="link" onClick={() => void onRevoke(grant.id)} className="h-auto shrink-0 p-0 text-[13px] font-normal text-faint hover:text-foreground">Revoke</Button>
+              <div className="mt-1 text-[13.5px] leading-5 text-muted-foreground">Scope · {grant.scope_count} protected {grant.scope_count === 1 ? "memory" : "memories"}</div>
+              <div className="mt-0.5 text-[12.5px] leading-5 text-faint">Purpose · {grant.purpose}</div>
+              <Button variant="link" onClick={() => void onRevoke(grant.id)} className="mt-2 h-auto p-0 text-[13.5px] font-normal text-foreground hover:text-muted-foreground">Revoke</Button>
             </div>
           ))}
           {!active.length && <EmptyRow>No active grants.</EmptyRow>}
         </div>
 
-        {!!stale.length && <><SectionLabel>Expired and revoked</SectionLabel><div className="mb-11 border-t border-subtle">{stale.slice(0, 8).map((grant) => <div key={grant.id} className="flex justify-between gap-4 border-b border-subtle py-3.5 text-[13px]"><span className="text-muted-foreground">{grant.agent} · {grant.purpose}</span><span className="shrink-0 text-faint">{grant.status}</span></div>)}</div></>}
+        {!!stale.length && <><SectionLabel>Expired and revoked</SectionLabel><div className="mb-[38px]">{stale.slice(0, 8).map((grant) => <div key={grant.id} className="flex justify-between gap-4 border-b border-subtle py-3.5 text-[13px]"><span className="text-muted-foreground">{grant.agent} · {grant.purpose}</span><span className="shrink-0 text-faint">{grant.status}</span></div>)}</div></>}
 
         <SectionLabel>Access history</SectionLabel>
-        <div className="border-t border-subtle">
-          {access.events.slice(0, 20).map((event) => <div key={event.id} className="grid grid-cols-[82px_1fr_auto] gap-3 border-b border-subtle py-3.5 text-[12.5px]"><span className="text-faint">{formatRelative(event.created_at)}</span><span className="text-muted-foreground">{event.agent} {event.action} · {event.purpose}</span><span className="text-faint">{event.status}</span></div>)}
+        <div>
+          {access.events.slice(0, 20).map((event) => <div key={event.id} className="flex items-baseline gap-3.5 border-b border-subtle py-3 text-[12.5px]"><span className="min-w-0 flex-1"><span className="block text-sm text-body">{event.agent} · {event.action}</span><span className="mt-0.5 block leading-5 text-faint">{permissionLabel(event.permission).toLowerCase()} · {event.scope} · {event.actor} · {formatRelative(event.created_at)}</span></span><span className={cn("shrink-0", event.status.includes("denied") || event.status === "revoked" ? "text-destructive" : event.status === "pending" ? "text-warning-foreground" : "text-success")}>{event.status}</span></div>)}
           {!access.events.length && <EmptyRow>No access activity yet.</EmptyRow>}
         </div>
       </div>
@@ -175,6 +177,11 @@ export function RequestDialog({
           <RequestFact label="Sealed matches">{request.sealed_match_count} · metadata hidden</RequestFact>
         </dl>
 
+        <div className="mt-[22px] border-l-2 border-border pl-4">
+          <div className="mb-1.5 text-xs text-faint">Why access is requested</div>
+          <p className="m-0 text-sm leading-[1.65] text-muted-foreground">A standard search found protected memory that may help with “{request.purpose}”. The agent cannot read it unless you approve this request.</p>
+        </div>
+
         <fieldset className="mt-[30px]">
           <legend className="text-xs font-medium uppercase tracking-[0.07em] text-faint">Access level</legend>
           <p className="mb-3 mt-1.5 text-[13px] leading-5 text-faint">Grant the least that does the job. You can lower the agent&apos;s request, never raise it.</p>
@@ -250,5 +257,5 @@ function permissionDescription(permission: MemoryPermission) {
   }[permission]
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) { return <div className="mb-2.5 text-[11px] font-medium uppercase tracking-[0.12em] text-faint">{children}</div> }
-function EmptyRow({ children }: { children: React.ReactNode }) { return <div className="border-b border-subtle py-[18px] text-[13px] text-faint">{children}</div> }
+function SectionLabel({ children }: { children: React.ReactNode }) { return <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-faint">{children}</div> }
+function EmptyRow({ children }: { children: React.ReactNode }) { return <div className="py-1.5 text-sm text-faint">{children}</div> }

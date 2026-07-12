@@ -533,7 +533,7 @@ def write_json(path: Path, value: Any) -> None:
 def main() -> None:
     discovery = {
         "product": "global-memory",
-        "product_version": "0.1.1",
+        "product_version": "0.1.2",
         "contract_version": 1,
         "stability": "frozen",
         "tools": TOOLS,

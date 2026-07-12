@@ -8,7 +8,19 @@ global-memory integrations status claude-code
 global-memory integrations verify claude-code
 ```
 
-The default installation symlinks the canonical skill to `~/.claude/skills/global-memory`. Use `--copy` when symlinks are unsuitable. `--with-global-instructions` adds one marked block to `~/.claude/CLAUDE.md`; unrelated content is preserved. `--dry-run` previews and `--json` returns machine-readable output.
+The default installation symlinks the canonical skill and basic command skills under `~/.claude/skills/`. Use `--copy` when symlinks are unsuitable. `--with-global-instructions` adds one marked block to `~/.claude/CLAUDE.md`; unrelated content is preserved. `--dry-run` previews and `--json` returns machine-readable output.
+
+Basic commands:
+
+```text
+/gam-context <task>
+/gam-search <query>
+/gam-remember <durable knowledge>
+/gam-review
+/gam-dashboard
+```
+
+Claude Code discovers these as skills and exposes them directly in the `/` menu. `gam-remember` and `gam-dashboard` are manual-only because they create a candidate or open a browser session. The other shortcuts may also be selected automatically when their descriptions match.
 
 When `claude` is installed, registration uses the supported user-scoped command shape:
 
@@ -26,4 +38,4 @@ Uninstall removes only recorded, still-matching artifacts:
 global-memory integrations uninstall claude-code
 ```
 
-Reference: [Claude Code MCP documentation](https://docs.anthropic.com/en/docs/claude-code/mcp).
+References: [Claude Code MCP documentation](https://docs.anthropic.com/en/docs/claude-code/mcp) and [Claude Code skills](https://code.claude.com/docs/en/slash-commands).

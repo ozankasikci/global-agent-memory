@@ -4,6 +4,21 @@ All notable changes are recorded here.
 
 ## Unreleased
 
+## 0.1.2 - 2026-07-12
+
+### Added
+
+- Add managed `gam-context`, `gam-search`, `gam-remember`, `gam-review`, and `gam-dashboard` skills for Claude Code and Codex, including safe installer upgrades, validation, packaging, and client-specific usage docs.
+
+### Changed
+
+- Refresh the dashboard with the new component-based layout across overview, access, memories, projects, and system views.
+
+### Fixed
+
+- Detect broken client CLI wrappers before registration and use the guarded configuration fallback when the executable is present but unusable.
+- Keep the dashboard background uniform across full-height and embedded browser hosts.
+
 ## 0.1.1 - 2026-07-12
 
 ### Fixed

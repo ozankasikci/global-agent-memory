@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
 
 from global_memory.errors import ErrorCode, GlobalMemoryError
-from global_memory.integrations.manager import ClientSpec, IntegrationManager
+from global_memory.integrations.manager import (
+    COMMAND_SKILLS,
+    SPECS,
+    ClientSpec,
+    CLIRegistrationAdapter,
+    IntegrationManager,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -40,6 +47,39 @@ class FailingAdapter(FakeAdapter):
         raise GlobalMemoryError(ErrorCode.INTEGRATION_VERIFY_FAILED, "injected registration failure")
 
 
+def test_cli_registration_requires_a_healthy_executable(monkeypatch: pytest.MonkeyPatch) -> None:
+    adapter = CLIRegistrationAdapter()
+    spec = SPECS["codex"]
+    monkeypatch.setattr("global_memory.integrations.manager.shutil.which", lambda _name: None)
+    assert not adapter.available(spec)
+
+    monkeypatch.setattr("global_memory.integrations.manager.shutil.which", lambda _name: "/usr/bin/codex")
+    monkeypatch.setattr(
+        "global_memory.integrations.manager.subprocess.run",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0),
+    )
+    assert adapter.available(spec)
+
+    monkeypatch.setattr(
+        "global_memory.integrations.manager.subprocess.run",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess([], 1),
+    )
+    assert not adapter.available(spec)
+
+
+@pytest.mark.parametrize("failure", [OSError("missing binary"), subprocess.TimeoutExpired("codex", 10)])
+def test_cli_registration_treats_version_probe_failures_as_unavailable(
+    monkeypatch: pytest.MonkeyPatch, failure: Exception
+) -> None:
+    monkeypatch.setattr("global_memory.integrations.manager.shutil.which", lambda _name: "/usr/bin/codex")
+
+    def fail(*_args: object, **_kwargs: object) -> None:
+        raise failure
+
+    monkeypatch.setattr("global_memory.integrations.manager.subprocess.run", fail)
+    assert not CLIRegistrationAdapter().available(SPECS["codex"])
+
+
 @pytest.mark.parametrize("client", ["claude-code", "codex"])
 def test_fake_home_install_is_idempotent_manifested_and_safely_uninstalled(tmp_path: Path, client: str) -> None:
     home = tmp_path / "home"
@@ -64,6 +104,10 @@ def test_fake_home_install_is_idempotent_manifested_and_safely_uninstalled(tmp_p
 
     skill = Path(first.skill_path)
     assert skill.is_dir() and (skill.is_symlink() if client == "claude-code" else not skill.is_symlink())
+    command_paths = [Path(path) for path in first.command_paths]
+    assert [path.name for path in command_paths] == list(COMMAND_SKILLS)
+    assert all(path.is_dir() for path in command_paths)
+    assert all(path.is_symlink() for path in command_paths) is (client == "claude-code")
     assert first == second
     assert len(adapter.register_calls) == 1
     assert "unrelated instructions" in instruction.read_text()
@@ -73,9 +117,11 @@ def test_fake_home_install_is_idempotent_manifested_and_safely_uninstalled(tmp_p
     assert manifest["clients"][client]["config_backup"]
     assert manifest["clients"][client]["instruction_backup"]
     assert manager.status(client)["skill_valid"]  # type: ignore[arg-type]
+    assert manager.status(client)["commands_valid"]  # type: ignore[arg-type]
 
     assert manager.uninstall(client)  # type: ignore[arg-type]
     assert not skill.exists()
+    assert not any(path.exists() for path in command_paths)
     assert instruction.read_text() == "unrelated instructions\n"
     assert config.read_text() == ('{"theme":"dark"}\n' if client == "claude-code" else 'model = "gpt"\n')
     assert adapter.unregister_calls == [client]
@@ -162,6 +208,8 @@ def test_failed_registration_rolls_back_every_installer_artifact(tmp_path: Path,
     target = home / (".claude/skills/global-memory" if client == "claude-code" else ".agents/skills/global-memory")
     assert caught.value.code is ErrorCode.INTEGRATION_VERIFY_FAILED
     assert not target.exists()
+    command_root = target.parent
+    assert not any((command_root / name).exists() for name in COMMAND_SKILLS)
     assert instruction.read_text() == "original instructions\n"
     assert config.read_text() == ('{"theme":"dark"}\n' if client == "claude-code" else 'model = "gpt"\n')
     assert client not in adapter.registered

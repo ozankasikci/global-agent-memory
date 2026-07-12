@@ -8,7 +8,19 @@ global-memory integrations status codex
 global-memory integrations verify codex
 ```
 
-The default installation symlinks the same canonical skill to `~/.agents/skills/global-memory`. Use `--copy` when required. `--with-global-instructions` adds one marked block to `~/.codex/AGENTS.md`; unrelated instructions remain byte-preserved outside the block.
+The default installation symlinks the canonical skill and basic command skills under `~/.agents/skills/`. Use `--copy` when required. `--with-global-instructions` adds one marked block to `~/.codex/AGENTS.md`; unrelated instructions remain byte-preserved outside the block.
+
+Basic skills:
+
+```text
+$gam-context <task>
+$gam-search <query>
+$gam-remember <durable knowledge>
+$gam-review
+$gam-dashboard
+```
+
+Run `/skills` in the Codex CLI to browse and select them, or type `$` to mention one directly. Codex custom prompts are deprecated, so the installer does not create legacy `/prompts:...` shims.
 
 When the Codex CLI is available, registration uses its supported stdio command:
 
@@ -24,4 +36,4 @@ After verification, ask Codex to **“Open the Global Agent Memory dashboard.”
 global-memory integrations uninstall codex
 ```
 
-Reference: [official Codex MCP documentation](https://developers.openai.com/codex/mcp).
+References: [official Codex MCP documentation](https://developers.openai.com/codex/mcp) and [Codex skills](https://developers.openai.com/codex/codex-manual.md#customization-and-tooling).

@@ -1,9 +1,9 @@
 # V1 release checklist
 
 - Date: 2026-07-12
-- Package: `0.1.1`
+- Package: `0.1.2`
 - MCP contract: `v1`
-- Status: **`v0.1.1` development release ready; a stable V1 release remains blocked on complete live client/UI acceptance.**
+- Status: **`v0.1.2` development release ready; a stable V1 release remains blocked on complete live client/UI acceptance.**
 
 ## Required product scenarios
 

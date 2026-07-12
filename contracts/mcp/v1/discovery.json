@@ -1,7 +1,7 @@
 {
   "contract_version": 1,
   "product": "global-memory",
-  "product_version": "0.1.1",
+  "product_version": "0.1.2",
   "prompts": [
     {
       "arguments": [

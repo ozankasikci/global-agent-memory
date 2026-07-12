@@ -85,10 +85,10 @@ export function App() {
 
   return (
     <TooltipProvider>
-      <div className="flex h-dvh min-h-[680px] min-w-[900px] flex-col overflow-hidden bg-background text-foreground">
-        <header className="gam-header flex h-[66px] shrink-0 items-center gap-7 px-10">
+      <div className="flex min-h-screen w-full min-w-0 flex-1 flex-col bg-background text-foreground">
+        <header className="gam-header flex min-h-[66px] shrink-0 items-center gap-7 px-5 sm:px-10">
           <button type="button" onClick={() => navigate("overview")} className="mr-auto text-sm font-semibold text-foreground">Global Agent Memory</button>
-          <nav className="flex items-center gap-1">
+          <nav className="gam-nav flex min-w-0 items-center gap-1 overflow-x-auto">
             {navigation.map((item) => {
               const active = screen === item.screen || (item.screen === "search" && screen === "detail")
               const count = item.screen === "review" ? data.candidates.length : item.screen === "access" ? pendingAccess.length : 0
@@ -98,13 +98,13 @@ export function App() {
           </nav>
         </header>
 
-        {!!pendingAccess.length && <div className="shrink-0 border-y border-subtle"><div className="gam-header flex min-h-10 items-center gap-2.5 px-10 text-[12px]"><span className="h-1.5 w-1.5 rounded-full bg-warning" /><span className="min-w-0 flex-1 truncate text-muted-foreground">{pendingAccess[0].agent} is requesting access to protected memory</span><Button variant="link" onClick={() => navigate("access")} className="h-auto shrink-0 p-0 text-[12px] font-normal text-muted-foreground hover:text-foreground">Review request →</Button></div></div>}
+        {!!pendingAccess.length && <button type="button" onClick={() => navigate("access")} className="shrink-0 border-y border-subtle bg-[#0d0d10] text-left"><span className="gam-header flex min-h-10 items-center gap-3 px-5 text-[13px] sm:px-10"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning-foreground" /><span className="min-w-0 flex-1 truncate text-body">{pendingAccess[0].agent} is requesting access to protected memory</span><span className="shrink-0 text-foreground">Review &amp; approve →</span></span></button>}
 
-        <main className="flex min-h-0 flex-1 flex-col">
+        <main className="flex min-h-0 flex-1 flex-col bg-background">
           {screen === "review" && <CandidateDetail candidate={selected} position={position} onApprove={dashboard.approve} onReject={dashboard.reject} onUpdate={dashboard.update} onOpenMemory={openMemory} onPrevious={() => moveCandidate(-1)} onNext={() => moveCandidate(1)} />}
           {screen === "access" && <AccessScreen access={data.access} onApprove={dashboard.approveAccess} onDeny={dashboard.denyAccess} onRevoke={dashboard.revokeAccess} />}
           {screen === "overview" && <OverviewScreen data={data} onReview={() => navigate("review")} onSearch={(query) => { setSearchQuery(query ?? ""); setScreen("search") }} onOpenMemory={openMemory} />}
-          {screen === "search" && <SearchScreen memories={data.memories} initialQuery={searchQuery} onOpenMemory={openMemory} />}
+          {screen === "search" && <SearchScreen memories={data.memories} grants={data.access.grants} initialQuery={searchQuery} onOpenMemory={openMemory} />}
           {screen === "projects" && <ProjectsScreen data={data} activeProject={dashboard.project} onSelect={(project) => { dashboard.selectProject(project); setScreen("overview") }} />}
           {screen === "system" && <SystemScreen data={data} onReindex={dashboard.reindex} onBackup={dashboard.backup} />}
           {screen === "detail" && detail && <MemoryDetail memory={detail} projects={data.projects} onBack={() => setScreen("search")} onArchive={dashboard.archive} onOpenObsidian={dashboard.openObsidian} onOpenFile={dashboard.openFile} onUpdate={dashboard.update} onClassify={dashboard.classify} onUnlock={dashboard.unlock} />}

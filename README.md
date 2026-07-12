@@ -118,6 +118,20 @@ global-memory integrations verify all
 
 Install one client instead with `claude-code` or `codex` in place of `all`.
 
+The integration also installs five basic agent shortcuts:
+
+| Shortcut | Purpose |
+| --- | --- |
+| `gam-context` | Load project-aware context for a task |
+| `gam-search` | Find a decision, fact, error, convention, or solution |
+| `gam-remember` | Propose explicitly supplied durable knowledge as a candidate |
+| `gam-review` | Show the candidate queue without changing it |
+| `gam-dashboard` | Open the authenticated dashboard |
+
+In Claude Code, invoke them directly, for example `/gam-context fix the upload retry bug`.
+In Codex, type `/skills` and choose one, or mention it directly, for example
+`$gam-context fix the upload retry bug`.
+
 ### 5. Open the dashboard
 
 ```shell
@@ -357,7 +371,7 @@ intentionally introduced.
 ## Project status
 
 Global Agent Memory is under active V1 development and is currently intended to be
-installed from source. The package version is `0.1.1`; the MCP contract version is `v1`.
+installed from source. The package version is `0.1.2`; the MCP contract version is `v1`.
 
 The product name is **Global Agent Memory**. The technical identifiers `global-memory`,
 `global-memory-mcp`, `global-memoryd`, `global_memory`, and `product: global-memory`

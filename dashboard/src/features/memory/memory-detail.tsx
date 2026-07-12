@@ -45,12 +45,14 @@ export function MemoryDetail({ memory, projects, onBack, onArchive, onOpenFile, 
 
   return (
     <section className="gam-scroll min-h-0 flex-1 overflow-y-auto">
-      <div className="gam-column px-10 pb-28 pt-9 gam-fade-in">
+      <div className="gam-column px-5 pb-28 pt-9 gam-fade-in sm:px-10">
         <Button variant="link" onClick={onBack} className="mb-[26px] h-auto p-0 text-[13px] font-normal text-faint hover:text-muted-foreground"><ArrowLeft />All memories</Button>
-        <h1 className="mb-3 flex items-center gap-2 text-2xl font-semibold leading-[1.3] tracking-[-0.01em] text-foreground">{displayed.visibility === "sealed" && <LockKey size={20} className="text-faint" />}{displayed.title}</h1>
-        <div className="mb-7 text-[13px] text-faint">{displayed.visibility} · {displayed.type} · updated {formatRelative(displayed.updated_at)}{displayed.visibility !== "sealed" && ` · confidence ${displayed.confidence.toFixed(2)}`}</div>
+        <h1 className="mb-3 flex items-center gap-2 text-[26px] font-semibold leading-[1.3] tracking-[-0.01em] text-foreground">{displayed.visibility === "sealed" && <LockKey size={20} className="text-faint" />}{displayed.visibility === "sealed" && !revealed ? "Sealed memory" : displayed.title}</h1>
+        <div className="mb-3.5 text-[12.5px] text-faint">{displayed.visibility === "sealed" && !revealed ? "Sealed · title, summary, and path are hidden" : `${displayed.type} · updated ${formatRelative(displayed.updated_at)} · confidence ${displayed.confidence.toFixed(2)}`}</div>
 
-        {displayed.visibility === "sealed" && !revealed ? <div className="mb-10 border-y border-subtle py-10"><LockKey className="mb-4 text-faint" size={24} /><h2 className="text-[16px] font-medium">This memory is sealed</h2><p className="mt-2 max-w-md text-[13px] leading-6 text-muted-foreground">Its title, content, tags, and file location are hidden. Unlocking allows one view in this dashboard and records the access.</p><Button className="mt-5" onClick={() => { setBusy(true); void onUnlock(memory, "Owner review from memory detail").then(setRevealed).catch((error) => toast.error(error instanceof Error ? error.message : "Unlock failed")).finally(() => setBusy(false)) }} disabled={busy}>Unlock to view</Button></div> : <>
+        {displayed.visibility === "sealed" && !revealed ? <div className="mb-10"><p className="mb-0 mt-6 max-w-lg text-[15px] leading-[1.7] text-muted-foreground">This memory is sealed. Its content stays hidden until you unlock it, and every access is confirmed and recorded. Sealed memories must never hold credentials, passwords, or API keys.</p><Button className="mt-7" onClick={() => { setBusy(true); void onUnlock(memory, "Owner review from memory detail").then(setRevealed).catch((error) => toast.error(error instanceof Error ? error.message : "Unlock failed")).finally(() => setBusy(false)) }} disabled={busy}>Unlock to view</Button></div> : <>
+        <div className="mb-3.5 flex items-baseline gap-2.5 border-b border-subtle pb-5 pt-2.5"><span className="min-w-0 flex-1 text-[13px] leading-5 text-muted-foreground">{visibilityDescription(displayed)}</span><Button variant="link" onClick={() => setClassifying(true)} className="h-auto shrink-0 p-0 text-[13px] font-normal text-foreground">Change visibility</Button></div>
+        {revealed && displayed.visibility === "sealed" && <div className="mb-4 text-[12.5px] text-warning-foreground">Unlocked for this view · this access is recorded</div>}
         <div className="mb-[30px] whitespace-pre-wrap text-[15px] leading-7 text-body">{displayed.body}</div>
 
         <div className="mb-[34px] border-l-2 border-border pl-4">
@@ -80,4 +82,10 @@ export function MemoryDetail({ memory, projects, onBack, onArchive, onOpenFile, 
 
 function toDraft(memory: MemoryRecord): MemoryUpdate {
   return { title: memory.title, body: memory.body, tags: memory.tags, confidence: memory.confidence, importance: memory.importance }
+}
+
+function visibilityDescription(memory: MemoryRecord) {
+  if (memory.visibility === "protected") return "Protected — excluded from agent retrieval; access needs your approval"
+  if (memory.visibility === "sealed") return "Sealed — hidden until unlocked; confirmation required for every access"
+  return "Standard — included in ordinary agent search and context"
 }

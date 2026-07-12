@@ -17,6 +17,7 @@ from global_memory.errors import ErrorCode, GlobalMemoryError
 
 ClientName = Literal["claude-code", "codex"]
 SERVER_NAME = "global-memory"
+COMMAND_SKILLS = ("gam-context", "gam-search", "gam-remember", "gam-review", "gam-dashboard")
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,7 +61,14 @@ class CLIRegistrationAdapter:
     """Preferred official client-CLI registration adapter."""
 
     def available(self, spec: ClientSpec) -> bool:
-        return shutil.which(spec.executable) is not None
+        executable = shutil.which(spec.executable)
+        if executable is None:
+            return False
+        try:
+            result = subprocess.run([executable, "--version"], capture_output=True, text=True, check=False, timeout=10)
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        return result.returncode == 0
 
     def is_registered(self, spec: ClientSpec, command: list[str]) -> bool:
         del command
@@ -107,6 +115,8 @@ class InstalledClient:
     config_backup: str | None
     registration_mode: str
     command: list[str]
+    command_paths: list[str]
+    command_hashes: dict[str, str]
 
 
 def integration_root() -> Path:
@@ -192,14 +202,20 @@ class IntegrationManager:
         spec = SPECS[client]
         source = integration_root() / "skills/global-memory"
         target = self.home / spec.skill_relative
+        command_sources = {name: integration_root() / "skills" / name for name in COMMAND_SKILLS}
+        command_targets = {name: target.parent / name for name in COMMAND_SKILLS}
         manifest = self._manifest()
         previous = manifest["clients"].get(client)
         source_hash = _tree_hash(source)
-        if os.path.lexists(target) and previous is None:
+        command_hashes = {name: _tree_hash(path) for name, path in command_sources.items()}
+        unmanaged_targets = [
+            path for path in (target, *command_targets.values()) if os.path.lexists(path) and previous is None
+        ]
+        if unmanaged_targets:
             raise GlobalMemoryError(
                 ErrorCode.INTEGRATION_CONFLICT,
                 "An unmanaged skill target already exists.",
-                details={"path": str(target)},
+                details={"path": str(unmanaged_targets[0])},
                 remediation="Move it aside; --force never replaces unmanaged artifacts.",
             )
         if force and previous is None:
@@ -230,31 +246,55 @@ class IntegrationManager:
             instruction_snapshot = instructions.read_bytes() if instructions.exists() else None
             created_backups: list[Path] = []
             with tempfile.TemporaryDirectory(prefix="global-memory-integration-") as temporary:
-                skill_snapshot = Path(temporary) / "skill"
-                skill_kind = self._snapshot_path(target, skill_snapshot)
+                managed_targets = {"global-memory": target, **command_targets}
+                expected_hashes = {"global-memory": source_hash, **command_hashes}
+                sources = {"global-memory": source, **command_sources}
+                snapshots = {
+                    name: (Path(temporary) / name, self._snapshot_path(path, Path(temporary) / name))
+                    for name, path in managed_targets.items()
+                }
                 try:
                     replace_mode = bool(previous) and previous.get("skill_mode") != desired_mode
-                    if (
-                        os.path.lexists(target)
-                        and previous
-                        and not self._skill_matches(target, source_hash)
-                        and not force
-                    ):
-                        raise GlobalMemoryError(
-                            ErrorCode.INTEGRATION_CONFLICT,
-                            "The managed skill differs from the canonical source.",
-                            remediation="Inspect the changes, then use --force only to replace this managed artifact.",
+                    previous_command_hashes = previous.get("command_hashes", {}) if previous else {}
+                    for name, managed_target in managed_targets.items():
+                        expected = expected_hashes[name]
+                        recorded = (
+                            previous.get("skill_hash")
+                            if previous and name == "global-memory"
+                            else previous_command_hashes.get(name)
                         )
-                    if os.path.lexists(target) and (
-                        force or replace_mode or not self._skill_matches(target, source_hash)
-                    ):
-                        self._remove_path(target)
-                    if not os.path.lexists(target):
-                        target.parent.mkdir(parents=True, exist_ok=True)
-                        if copy:
-                            shutil.copytree(source, target)
-                        else:
-                            target.symlink_to(source, target_is_directory=True)
+                        if os.path.lexists(managed_target) and previous and recorded is None:
+                            raise GlobalMemoryError(
+                                ErrorCode.INTEGRATION_CONFLICT,
+                                "An unmanaged command skill target already exists.",
+                                details={"path": str(managed_target)},
+                                remediation="Move it aside; managed upgrades never adopt unrelated artifacts.",
+                            )
+                        if (
+                            os.path.lexists(managed_target)
+                            and previous
+                            and recorded is not None
+                            and not self._skill_matches(managed_target, recorded)
+                            and not force
+                        ):
+                            raise GlobalMemoryError(
+                                ErrorCode.INTEGRATION_CONFLICT,
+                                "A managed skill differs from the installed version.",
+                                details={"path": str(managed_target)},
+                                remediation=(
+                                    "Inspect the changes, then use --force only to replace this managed artifact."
+                                ),
+                            )
+                        if os.path.lexists(managed_target) and (
+                            force or replace_mode or not self._skill_matches(managed_target, expected)
+                        ):
+                            self._remove_path(managed_target)
+                        if not os.path.lexists(managed_target):
+                            managed_target.parent.mkdir(parents=True, exist_ok=True)
+                            if copy:
+                                shutil.copytree(sources[name], managed_target)
+                            else:
+                                managed_target.symlink_to(sources[name], target_is_directory=True)
                     if with_global_instructions:
                         snippet = (integration_root() / spec.snippet_relative).read_text()
                         if instruction_backup is None:
@@ -287,6 +327,8 @@ class IntegrationManager:
                         backup,
                         registration_mode,
                         command,
+                        [str(command_targets[name]) for name in COMMAND_SKILLS],
+                        command_hashes,
                     )
                     manifest["clients"][client] = asdict(installed)
                     self._save(manifest)
@@ -298,7 +340,9 @@ class IntegrationManager:
                                 self.adapter.unregister(spec)
                         except Exception:
                             pass
-                    self._restore_path(target, skill_snapshot, skill_kind)
+                    for name, managed_target in managed_targets.items():
+                        snapshot, kind = snapshots[name]
+                        self._restore_path(managed_target, snapshot, kind)
                     self._restore_file(instructions, instruction_snapshot)
                     self._restore_file(config_path, config_snapshot)
                     self._restore_file(self.manifest_path, manifest_snapshot, mode=0o600)
@@ -317,6 +361,8 @@ class IntegrationManager:
             backup,
             registration_mode,
             command,
+            [str(command_targets[name]) for name in COMMAND_SKILLS],
+            command_hashes,
         )
 
     @staticmethod
@@ -419,13 +465,21 @@ class IntegrationManager:
         spec = SPECS[client]
         manifest = self._manifest()["clients"].get(client)
         target = self.home / spec.skill_relative
+        command_targets = {name: target.parent / name for name in COMMAND_SKILLS}
         command = self._command()
+        command_hashes = manifest.get("command_hashes", {}) if manifest else {}
         return {
             "client": client,
             "managed": manifest is not None,
             "client_available": self.adapter.available(spec),
             "skill_installed": os.path.lexists(target),
             "skill_valid": bool(manifest) and self._skill_matches(target, manifest["skill_hash"]),
+            "commands_installed": all(os.path.lexists(path) for path in command_targets.values()),
+            "commands_valid": bool(manifest)
+            and all(
+                name in command_hashes and self._skill_matches(path, command_hashes[name])
+                for name, path in command_targets.items()
+            ),
             "mcp_registered": self.adapter.is_registered(spec, command)
             if self.adapter.available(spec)
             else self._fallback_status(spec, self.home / spec.config_relative, command),
@@ -453,13 +507,25 @@ class IntegrationManager:
         if dry_run:
             return True
         target = Path(record["skill_path"])
+        managed_commands = [
+            (Path(path_value), record.get("command_hashes", {}).get(Path(path_value).name))
+            for path_value in record.get("command_paths", [])
+        ]
+        if os.path.lexists(target) and not self._skill_matches(target, record["skill_hash"]):
+            raise GlobalMemoryError(ErrorCode.INTEGRATION_CONFLICT, "The managed skill was modified.")
+        for command_target, expected_hash in managed_commands:
+            if os.path.lexists(command_target) and (
+                expected_hash is None or not self._skill_matches(command_target, expected_hash)
+            ):
+                raise GlobalMemoryError(ErrorCode.INTEGRATION_CONFLICT, "A managed command skill was modified.")
         if os.path.lexists(target):
-            if not self._skill_matches(target, record["skill_hash"]):
-                raise GlobalMemoryError(ErrorCode.INTEGRATION_CONFLICT, "The managed skill was modified.")
             if target.is_dir() and not target.is_symlink():
                 shutil.rmtree(target)
             else:
                 target.unlink()
+        for command_target, _ in managed_commands:
+            if os.path.lexists(command_target):
+                self._remove_path(command_target)
         if record.get("instruction_path"):
             self._remove_snippet(Path(record["instruction_path"]), record["instruction_hash"])
         if record["registration_mode"] == "cli" and self.adapter.available(spec):
