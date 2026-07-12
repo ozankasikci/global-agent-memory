@@ -1,0 +1,10 @@
+{
+  "contract_version": 1,
+  "description": "Read recently updated active global and organization memories without project leakage.",
+  "mimeType": "application/json",
+  "name": "recent",
+  "responseSchema": {
+    "$ref": "schemas/success-envelope.json"
+  },
+  "uriTemplate": "memory://v1/recent"
+}
