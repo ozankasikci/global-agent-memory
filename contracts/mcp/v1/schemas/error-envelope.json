@@ -1,0 +1,75 @@
+{
+  "$id": "https://global-memory.local/contracts/mcp/v1/schemas/error-envelope.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "const": 1
+    },
+    "error": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "CONTRACT_VERSION_UNSUPPORTED",
+            "CONFIG_INVALID",
+            "VAULT_NOT_FOUND",
+            "VAULT_NOT_WRITABLE",
+            "NOTE_NOT_FOUND",
+            "NOTE_INVALID",
+            "DUPLICATE_ID",
+            "POSSIBLE_DUPLICATE",
+            "REQUEST_ID_CONFLICT",
+            "VERSION_CONFLICT",
+            "PATH_OUTSIDE_VAULT",
+            "PROJECT_NOT_FOUND",
+            "EMBEDDING_PROVIDER_UNAVAILABLE",
+            "VECTOR_INDEX_UNAVAILABLE",
+            "INDEX_CORRUPT",
+            "INDEX_BUSY",
+            "DAEMON_UNAVAILABLE",
+            "UNAUTHORIZED",
+            "REQUEST_TOO_LARGE",
+            "CLIENT_NOT_INSTALLED",
+            "INTEGRATION_CONFLICT",
+            "INTEGRATION_VERIFY_FAILED",
+            "INTERNAL_ERROR"
+          ],
+          "type": "string"
+        },
+        "details": {
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "remediation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable",
+        "details",
+        "remediation"
+      ],
+      "type": "object"
+    },
+    "ok": {
+      "const": false
+    }
+  },
+  "required": [
+    "contract_version",
+    "ok",
+    "error"
+  ],
+  "type": "object"
+}
