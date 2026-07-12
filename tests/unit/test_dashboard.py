@@ -189,3 +189,105 @@ async def test_dashboard_routes_require_session_and_mutate_through_memory_servic
         assert await anyio.Path(backup.json()["data"]["path"]).is_file()
 
     container.database.close()
+
+
+@pytest.mark.asyncio
+async def test_dashboard_json_mutations_fail_closed_on_malformed_or_non_object_payloads(tmp_path: Path) -> None:
+    container = build_container(tmp_path / "vault", tmp_path / "state")
+    candidate = container.memory.remember(
+        MemoryDraft(
+            title="Malformed payload target",
+            content="A candidate used to verify dashboard input handling.",
+            type="fact",
+            scope="global",
+        )
+    )
+    sessions = DashboardSessions("http://127.0.0.1:8765")
+    app = Starlette(routes=dashboard_routes(container, sessions))
+
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver") as client:
+        launch = sessions.launch(open_browser=False)
+        ticket = parse_qs(urlsplit(launch["url"]).query)["ticket"][0]
+        assert (await client.get(f"/ui/session?ticket={ticket}", follow_redirects=False)).status_code == 303
+        headers = {"X-GAM-Action": "dashboard", "Content-Type": "application/json"}
+        endpoints = [
+            ("PATCH", f"/ui/api/memories/{candidate.metadata.id}"),
+            ("POST", f"/ui/api/memories/{candidate.metadata.id}/classify"),
+            ("POST", f"/ui/api/memories/{candidate.metadata.id}/unlock"),
+            ("POST", "/ui/api/access/missing/unknown"),
+        ]
+        for method, endpoint in endpoints:
+            malformed = await client.request(method, endpoint, headers=headers, content="{")
+            assert malformed.status_code == 400
+            assert malformed.json()["error"]["code"] == "NOTE_INVALID"
+
+        non_object = await client.patch(
+            f"/ui/api/memories/{candidate.metadata.id}",
+            headers={"X-GAM-Action": "dashboard"},
+            json=["not", "an", "object"],
+        )
+        assert non_object.status_code == 400
+        assert non_object.json()["error"]["code"] == "NOTE_INVALID"
+
+    container.database.close()
+
+
+@pytest.mark.asyncio
+async def test_dashboard_sealed_unlock_is_one_view_and_open_routes_remain_blocked(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    container = build_container(tmp_path / "vault", tmp_path / "state")
+    candidate = container.memory.remember(
+        MemoryDraft(
+            title="Owner-only incident details",
+            content="Owner-only incident body.",
+            type="reference",
+            scope="global",
+        )
+    )
+    active = container.memory.approve(candidate.metadata.id, candidate.version)
+    sealed = container.memory.update(
+        active.metadata.id,
+        active.version,
+        metadata_patch={"visibility": "sealed", "access_policy": "per_access"},
+    )
+    opened: list[str] = []
+    monkeypatch.setattr("global_memory.dashboard.routes.webbrowser.open", lambda uri: bool(opened.append(uri)))
+    sessions = DashboardSessions("http://127.0.0.1:8765")
+    app = Starlette(routes=dashboard_routes(container, sessions))
+
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver") as client:
+        invalid_ticket = await client.get("/ui/session?ticket=missing", follow_redirects=False)
+        assert invalid_ticket.status_code == 401
+        assert invalid_ticket.headers.get("set-cookie") is None
+
+        launch = sessions.launch(open_browser=False)
+        ticket = parse_qs(urlsplit(launch["url"]).query)["ticket"][0]
+        exchanged = await client.get(f"/ui/session?ticket={ticket}", follow_redirects=False)
+        assert exchanged.status_code == 303
+        assert "HttpOnly" in exchanged.headers["set-cookie"]
+        assert "SameSite=strict" in exchanged.headers["set-cookie"]
+        headers = {"X-GAM-Action": "dashboard"}
+
+        for action in ("open-file", "open-obsidian"):
+            blocked = await client.post(f"/ui/api/memories/{sealed.metadata.id}/{action}", headers=headers, json={})
+            assert blocked.status_code == 403
+            assert blocked.json()["error"]["code"] == "ACCESS_APPROVAL_REQUIRED"
+        assert opened == []
+
+        unlocked = await client.post(
+            f"/ui/api/memories/{sealed.metadata.id}/unlock",
+            headers=headers,
+            json={"purpose": "Verify incident follow-up"},
+        )
+        assert unlocked.status_code == 200
+        assert unlocked.json()["data"]["title"] == "Owner-only incident details"
+        assert unlocked.json()["data"]["body"] == "Owner-only incident body."
+        assert any(event["action"] == "sealed_unlocked" for event in container.access.dashboard_state()["events"])
+
+        bootstrap = (await client.get("/ui/api/bootstrap")).json()["data"]
+        redacted = next(memory for memory in bootstrap["memories"] if memory["id"] == sealed.metadata.id)
+        assert redacted["title"] == "Sealed memory"
+        assert redacted["body"] == ""
+
+    container.database.close()

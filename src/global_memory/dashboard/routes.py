@@ -254,6 +254,16 @@ def _error_response(error: GlobalMemoryError, *, status_code: int = 400) -> JSON
     return JSONResponse(failure(error), status_code=status_code)
 
 
+async def _dashboard_payload(request: Request) -> dict[str, Any]:
+    try:
+        payload = await request.json()
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise GlobalMemoryError(ErrorCode.NOTE_INVALID, "The dashboard action payload is not valid JSON.") from exc
+    if not isinstance(payload, dict):
+        raise GlobalMemoryError(ErrorCode.NOTE_INVALID, "The dashboard action payload must be an object.")
+    return payload
+
+
 def _classification_patch(container: Any, memory: StoredMemory, payload: dict[str, Any]) -> dict[str, Any]:
     visibility = str(payload["visibility"])
     if visibility not in {"standard", "protected", "sealed"}:
@@ -411,9 +421,7 @@ def dashboard_routes(container: Any, sessions: DashboardSessions) -> list[Any]:
                 GlobalMemoryError(ErrorCode.UNAUTHORIZED, "The dashboard action is unauthorized."), status_code=401
             )
         try:
-            payload = await request.json()
-            if not isinstance(payload, dict):
-                raise GlobalMemoryError(ErrorCode.NOTE_INVALID, "The dashboard action payload must be an object.")
+            payload = await _dashboard_payload(request)
             memory_id = request.path_params["memory_id"]
             action = request.path_params.get("action")
             request_id = str(uuid.uuid4())
@@ -501,7 +509,7 @@ def dashboard_routes(container: Any, sessions: DashboardSessions) -> list[Any]:
                 GlobalMemoryError(ErrorCode.UNAUTHORIZED, "The dashboard action is unauthorized."), status_code=401
             )
         try:
-            payload = await request.json()
+            payload = await _dashboard_payload(request)
             memory = container.memory.get(request.path_params["memory_id"])
             result = container.memory.update(
                 memory.metadata.id,
@@ -536,7 +544,7 @@ def dashboard_routes(container: Any, sessions: DashboardSessions) -> list[Any]:
                 GlobalMemoryError(ErrorCode.UNAUTHORIZED, "The dashboard action is unauthorized."), status_code=401
             )
         try:
-            payload = await request.json()
+            payload = await _dashboard_payload(request)
             purpose = str(payload.get("purpose") or "Owner review")
             memory = container.memory.get(request.path_params["memory_id"])
             if memory.metadata.visibility.value != "sealed":
@@ -557,7 +565,7 @@ def dashboard_routes(container: Any, sessions: DashboardSessions) -> list[Any]:
                 GlobalMemoryError(ErrorCode.DAEMON_UNAVAILABLE, "Access approvals are unavailable."), status_code=503
             )
         try:
-            payload = await request.json()
+            payload = await _dashboard_payload(request)
             action = request.path_params["action"]
             identifier = request.path_params["identifier"]
             if action == "approve":

@@ -1,9 +1,9 @@
 # V1 release checklist
 
-- Date: 2026-07-12
-- Package: `0.1.2`
+- Date: 2026-07-13
+- Package: `0.1.3`
 - MCP contract: `v1`
-- Status: **`v0.1.2` development release ready; a stable V1 release remains blocked on complete live client/UI acceptance.**
+- Status: **`v0.1.3` development release ready; a stable V1 release remains blocked on complete live client/UI acceptance.**
 
 ## Required product scenarios
 
@@ -27,11 +27,11 @@
 | Gate | Evidence | Status |
 | --- | --- | --- |
 | Ruff + strict mypy | `make check` | Pass |
-| Unit / integration / contract / E2E | 60 / 44 / 16 / 13 | Pass |
-| Coverage | In-process target excludes subprocess-only adapters; final result 87.39% | Pass |
+| Unit / integration / contract / E2E | 78 / 57 / 19 / 13, plus 8 dashboard component tests | Pass |
+| Coverage | In-process target excludes subprocess-only adapters; final result 86.54% | Pass |
 | Performance | 10k-note suite, all four budgets pass | Pass |
 | Fresh install/upgrade/docs | Isolated wheel, console scripts, schema upgrade fixture, operations/client docs | Pass |
-| Linux/macOS, Python 3.12/3.14 | Matrix configured; full gate passed locally on macOS 3.12.11 and 3.14.0rc3 | Awaiting Linux/remote CI run |
+| Linux/macOS, Python 3.12/3.14 | Full gate passed locally on macOS 3.12.11 and previously on 3.14.0rc3; no remote workflows are currently configured | Awaiting Linux/remote CI decision |
 | Claude Code live invocation/uninstall | Requires explicit permission to modify real user scope | Not run |
 | Codex live invocation/uninstall | Local npm wrapper fails with missing bundled native binary (`ENOENT`) | Blocked externally |
 | Obsidian properties/Bases/graph visual inspection | Obsidian installed; opening/mutating a user-selected Vault requires explicit permission | Not run |
@@ -48,6 +48,6 @@ Recorded read-only on 2026-07-11; no client configuration or Vault was changed.
 | Codex | npm wrapper 0.116.0 | `--version` fails with `ENOENT` for the missing `codex-darwin-arm64` native executable |
 | Obsidian | 1.8.10 | Application is installed; visual Vault acceptance remains authorization-gated |
 
-`git remote -v` returns no configured remote in this checkout, so the required remote CI matrix cannot be triggered here.
+The checkout tracks `origin/main`, but the repository currently has no GitHub Actions workflows. Cross-platform verification therefore remains a manual release gate.
 
 Do not tag V1 until every awaiting/not-run/blocked live gate above is resolved and the command outputs/client versions are appended without secrets.

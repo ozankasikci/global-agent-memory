@@ -2,9 +2,9 @@
 
 ## Standard gate
 
-`make check` runs formatting, lint, strict mypy, unit tests, integration tests, frozen-contract tests, real daemon/proxy E2E, the 85% in-process domain/application/persistence coverage gate, and deterministic contract regeneration.
+`make check` runs formatting, lint, strict mypy, dashboard TypeScript checks, dashboard component tests, the dashboard production build, Python unit tests, integration tests, frozen-contract tests, real daemon/proxy E2E, the 85% in-process domain/application/persistence coverage gate, and deterministic contract regeneration.
 
-The CI matrix repeats that gate on Ubuntu and macOS with Python 3.12 and the latest supported Python (currently 3.14). Normal tests use fake embeddings, fake client registrations, temporary homes/Vaults/Git repositories, and never modify real Claude Code or Codex settings.
+The repository currently has no GitHub Actions workflows, so contributors and maintainers must run this gate locally before pushing. Normal tests use fake embeddings, fake client registrations, temporary homes/Vaults/Git repositories, and never modify real Claude Code or Codex settings.
 
 ## Performance
 

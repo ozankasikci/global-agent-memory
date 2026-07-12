@@ -466,7 +466,7 @@ intentionally introduced.
 ## Project status
 
 Global Agent Memory is under active V1 development and is currently intended to be
-installed from source. The package version is `0.1.2`; the MCP contract version is `v1`.
+installed from source. The package version is `0.1.3`; the MCP contract version is `v1`.
 
 The product name is **Global Agent Memory**. The technical identifiers `global-memory`,
 `global-memory-mcp`, `global-memoryd`, `global_memory`, and `product: global-memory`

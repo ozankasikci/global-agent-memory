@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import plistlib
+import stat
 import subprocess
 import sys
 import zipfile
@@ -85,6 +86,38 @@ def test_restore_integrity_failure_leaves_no_partial_vault(tmp_path: Path) -> No
         restore_vault(archive, vault)
     assert caught.value.code is ErrorCode.NOTE_INVALID
     assert not vault.exists()
+
+
+def test_restore_rejects_duplicate_names_and_symbolic_link_entries(tmp_path: Path) -> None:
+    duplicate = tmp_path / "duplicate.zip"
+    content = b"same"
+    with pytest.warns(UserWarning, match="Duplicate name"), zipfile.ZipFile(duplicate, "w") as stream:
+        stream.writestr("note.md", content)
+        stream.writestr("note.md", content)
+        stream.writestr(
+            ".global-memory-backup.json",
+            json.dumps({"files": {"note.md": hashlib.sha256(content).hexdigest()}}),
+        )
+    with pytest.raises(GlobalMemoryError) as repeated:
+        restore_vault(duplicate, tmp_path / "duplicate-vault")
+    assert repeated.value.code is ErrorCode.NOTE_INVALID
+    assert not (tmp_path / "duplicate-vault").exists()
+
+    symlink = tmp_path / "symlink.zip"
+    target = b"../outside.md"
+    info = zipfile.ZipInfo("linked.md")
+    info.create_system = 3
+    info.external_attr = (stat.S_IFLNK | 0o777) << 16
+    with zipfile.ZipFile(symlink, "w") as stream:
+        stream.writestr(info, target)
+        stream.writestr(
+            ".global-memory-backup.json",
+            json.dumps({"files": {"linked.md": hashlib.sha256(target).hexdigest()}}),
+        )
+    with pytest.raises(GlobalMemoryError) as linked:
+        restore_vault(symlink, tmp_path / "symlink-vault")
+    assert linked.value.code is ErrorCode.PATH_OUTSIDE_VAULT
+    assert not (tmp_path / "symlink-vault").exists()
 
 
 @pytest.mark.parametrize("kind", ["launchd", "systemd"])

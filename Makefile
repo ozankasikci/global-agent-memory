@@ -12,7 +12,7 @@ typecheck:
 	uv run mypy
 
 dashboard-check:
-	cd dashboard && npm run lint && npm run build
+	cd dashboard && npm run lint && npm test && npm run build
 
 unit:
 	uv run pytest tests/unit

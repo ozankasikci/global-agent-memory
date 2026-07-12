@@ -75,4 +75,16 @@ describe("RequestDialog", () => {
     expect(screen.getByRole("button", { name: "This task" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "Agent session" })).toBeDisabled()
   })
+
+  it("does not allow a stale ineligible match to be selected", () => {
+    const request: AccessRequestRecord = {
+      ...baseRequest,
+      matches: [{ ...baseRequest.matches[0], eligible: false }],
+    }
+    render(<RequestDialog request={request} onClose={() => {}} onApprove={vi.fn()} onDeny={vi.fn()} />)
+
+    expect(screen.getByRole("checkbox", { name: "Select Production deployment topology" })).toBeDisabled()
+    expect(screen.getByText(/No longer eligible/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Allow" })).toBeDisabled()
+  })
 })

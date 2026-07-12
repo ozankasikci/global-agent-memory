@@ -60,4 +60,33 @@ describe("ClassificationDialog", () => {
       max_permission: "manage",
     }))
   })
+
+  it("supports selected projects for shared protected memory and clears policy when sealed", async () => {
+    const shared = { ...memory, scope: "global" as const, project: null, allowed_projects: [] }
+    const atlas = { ...project, id: "proj_atlas", name: "Atlas" }
+    const onSave = vi.fn().mockResolvedValue(shared)
+    const { rerender } = render(
+      <ClassificationDialog memory={shared} projects={[project, atlas]} open onOpenChange={() => {}} onSave={onSave} />,
+    )
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Allow Atlas" }))
+    fireEvent.click(screen.getByRole("button", { name: "Save classification" }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith({
+      visibility: "protected",
+      access_policy: "user_approval",
+      allowed_projects: ["Atlas"],
+      max_permission: "read",
+    }))
+
+    onSave.mockClear()
+    rerender(<ClassificationDialog memory={shared} projects={[project, atlas]} open onOpenChange={() => {}} onSave={onSave} />)
+    fireEvent.click(screen.getByRole("button", { name: /Sealed/ }))
+    fireEvent.click(screen.getByRole("button", { name: "Save classification" }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith({
+      visibility: "sealed",
+      access_policy: "per_access",
+      allowed_projects: [],
+      max_permission: "read",
+    }))
+  })
 })

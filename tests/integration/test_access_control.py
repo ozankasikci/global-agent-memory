@@ -176,10 +176,16 @@ def test_approval_rejects_out_of_scope_stale_and_project_restricted_memories(tmp
         )
     assert project_restricted.value.code is ErrorCode.ACCESS_GRANT_INVALID
 
+    unrestricted = container.memory.update(
+        matched.metadata.id,
+        restricted.version,
+        request_id="allow-before-stale-request",
+        metadata_patch={"allowed_projects": []},
+    )
     requested_stale = _request(container)
     stale = container.memory.update(
         matched.metadata.id,
-        restricted.version,
+        unrestricted.version,
         request_id="seal-after-request",
         metadata_patch={"visibility": "sealed", "allowed_projects": []},
     )
@@ -191,7 +197,7 @@ def test_approval_rejects_out_of_scope_stale_and_project_restricted_memories(tmp
             permission="read",
             memory_ids=[matched.metadata.id],
         )
-    assert no_longer_protected.value.code in {ErrorCode.ACCESS_GRANT_INVALID, ErrorCode.VERSION_CONFLICT}
+    assert no_longer_protected.value.code is ErrorCode.VERSION_CONFLICT
 
 
 def test_per_access_policy_forces_one_retrieval(tmp_path: Path) -> None:
@@ -224,6 +230,80 @@ def test_per_access_policy_forces_one_retrieval(tmp_path: Path) -> None:
         memory_ids=[memory.metadata.id],
     )
     assert approved["grant"]["remaining_uses"] == 1
+
+
+def test_grants_enforce_single_use_permission_project_and_expiry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    container = build_container(tmp_path / "vault", tmp_path / "state")
+    now = datetime(2026, 7, 13, 12, 0, tzinfo=UTC)
+    monkeypatch.setattr(container.access, "_now", lambda: now)
+    memory = _protected(
+        container,
+        _active_memory(
+            container,
+            title="Production topology grant boundaries",
+            content="# Reference\n\nProduction topology has strict grant boundaries.",
+        ),
+        allowed_projects=["Alpha"],
+        max_permission="edit",
+    )
+
+    once_request = _request(container, permission="read", duration="once", project="Alpha")
+    once = container.access.approve(
+        once_request["request_id"],
+        duration="once",
+        permission="read",
+        memory_ids=[memory.metadata.id, memory.metadata.id],
+    )["grant"]
+    assert container.access.scope_for(once["id"], permission="read", project="Alpha") == {memory.metadata.id}
+    with pytest.raises(GlobalMemoryError) as reused:
+        container.access.scope_for(once["id"], permission="read", project="Alpha")
+    assert reused.value.code is ErrorCode.ACCESS_GRANT_INVALID
+
+    timed_request = _request(container, permission="edit", duration="15m", project="Alpha")
+    timed = container.access.approve(
+        timed_request["request_id"],
+        duration="15m",
+        permission="edit",
+        memory_ids=[memory.metadata.id],
+    )["grant"]
+    with pytest.raises(GlobalMemoryError) as excessive_permission:
+        container.access.scope_for(timed["id"], permission="manage", project="Alpha", consume=False)
+    assert excessive_permission.value.code is ErrorCode.ACCESS_GRANT_INVALID
+    with pytest.raises(GlobalMemoryError) as wrong_project:
+        container.access.scope_for(timed["id"], permission="read", project="Beta", consume=False)
+    assert wrong_project.value.code is ErrorCode.ACCESS_GRANT_INVALID
+
+    now += timedelta(minutes=16)
+    with pytest.raises(GlobalMemoryError) as expired:
+        container.access.scope_for(timed["id"], permission="read", project="Alpha", consume=False)
+    assert expired.value.code is ErrorCode.ACCESS_GRANT_EXPIRED
+
+
+def test_access_request_and_approval_reject_invalid_boundary_inputs(tmp_path: Path) -> None:
+    container = build_container(tmp_path / "vault", tmp_path / "state")
+
+    with pytest.raises(GlobalMemoryError) as request_permission:
+        _request(container, permission="owner")
+    assert request_permission.value.code is ErrorCode.NOTE_INVALID
+    with pytest.raises(GlobalMemoryError) as request_duration:
+        _request(container, duration="forever")
+    assert request_duration.value.code is ErrorCode.NOTE_INVALID
+
+    for duration, permission, memory_ids in [
+        ("forever", "read", ["mem_missing"]),
+        ("once", "owner", ["mem_missing"]),
+        ("once", "read", []),
+    ]:
+        with pytest.raises(GlobalMemoryError) as approval:
+            container.access.approve(
+                "req_missing",
+                duration=duration,
+                permission=permission,
+                memory_ids=memory_ids,
+            )
+        assert approval.value.code is ErrorCode.NOTE_INVALID
 
 
 def test_policy_change_revokes_active_grant_without_auditing_content(tmp_path: Path) -> None:

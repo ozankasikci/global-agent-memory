@@ -4,18 +4,30 @@ All notable changes are recorded here.
 
 ## Unreleased
 
+## 0.1.3 - 2026-07-13
+
 ### Added
 
 - Add an idempotent `global-memory setup` command that initializes the default Vault,
   installs the native user service, detects and connects supported coding agents,
   verifies healthy clients, handles broken client wrappers through the guarded fallback,
   and opens the authenticated dashboard after one confirmation.
+- Add an architecture visual, real dashboard screenshots, feature comparison, measured
+  10,000-memory performance evidence, community links, issue forms, a pull request
+  template, and a code of conduct.
+- Add dashboard component tests and adversarial coverage for malformed dashboard input,
+  sealed-memory owner access, grant boundaries, stale policy, and hostile backup entries.
 
 ### Changed
 
 - Make guided setup the primary README and operations path while keeping every
   individual initialization, service, integration, verification, and diagnostic
   command available for advanced use and repair.
+- Modularize the Python source package into focused subpackages without changing the
+  public CLI or MCP identifiers.
+- Run dashboard component tests as part of the standard `make check` quality gate.
+- Expand the README with Obsidian, dashboard, agent-skill, security, and repository
+  discovery guidance.
 
 ### Fixed
 
@@ -25,6 +37,14 @@ All notable changes are recorded here.
   guided setup reports the native service as unavailable.
 - Refresh changed artifacts that are already recorded in the integration manifest when
   guided setup repairs or upgrades a client, while continuing to refuse unmanaged paths.
+- Allow fresh guided setup to install a client integration without incorrectly treating
+  the first install as a forced replacement.
+- Reject probable secrets and symlinked Markdown even when notes are added directly to
+  the Vault outside the MCP workflow.
+- Create backups atomically outside the Vault and restore only after complete manifest,
+  path, link, size, and checksum validation.
+- Return structured `NOTE_INVALID` dashboard responses for malformed or non-object JSON
+  instead of allowing parser exceptions to escape.
 
 ## 0.1.2 - 2026-07-12
 
