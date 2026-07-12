@@ -1,0 +1,74 @@
+{
+  "contract_version": 1,
+  "description": "Archive a durable memory by default, requiring explicit hard-delete intent for destructive removal.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "access_grant": {
+        "description": "Owner-approved temporary protected-memory grant.",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "hard_delete": {
+        "default": false,
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "reason": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "request_id": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "request_id",
+      "id",
+      "reason"
+    ],
+    "type": "object"
+  },
+  "name": "memory_archive",
+  "outputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "contract_version": {
+        "const": 1
+      },
+      "data": {},
+      "diagnostics": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "ok": {
+        "const": true
+      },
+      "warnings": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "contract_version",
+      "ok",
+      "data",
+      "warnings",
+      "diagnostics"
+    ],
+    "type": "object"
+  }
+}
