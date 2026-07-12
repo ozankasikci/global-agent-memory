@@ -10,6 +10,29 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [{ name = "Global Agent Memory contributors" }]
+keywords = [
+  "mcp",
+  "model-context-protocol",
+  "ai-agents",
+  "agent-memory",
+  "claude-code",
+  "codex",
+  "obsidian",
+  "local-first",
+  "semantic-search",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Text Processing :: Indexing",
+]
 dependencies = [
   "httpx>=0.28,<1",
   "mcp>=1.12,<2",
@@ -24,6 +47,13 @@ dependencies = [
   "uvicorn>=0.35,<1",
   "watchdog>=6.0,<7",
 ]
+
+[project.urls]
+Homepage = "https://github.com/ozankasikci/global-agent-memory"
+Documentation = "https://github.com/ozankasikci/global-agent-memory#readme"
+Repository = "https://github.com/ozankasikci/global-agent-memory"
+Issues = "https://github.com/ozankasikci/global-agent-memory/issues"
+Changelog = "https://github.com/ozankasikci/global-agent-memory/blob/main/CHANGELOG.md"
 
 [project.scripts]
 global-memory = "global_memory.cli:main"
