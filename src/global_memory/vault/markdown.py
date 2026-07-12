@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from global_memory.domain.models import MemoryMetadata, ParsedMemory
 from global_memory.errors import ErrorCode, GlobalMemoryError
+from global_memory.security import reject_probable_secrets
 
 
 class _QuotedStringDumper(yaml.SafeDumper):
@@ -50,6 +51,7 @@ def parse_note(text: str) -> ParsedMemory:
         metadata = MemoryMetadata.model_validate(values)
     except ValidationError as exc:
         raise _invalid(str(exc)) from exc
+    reject_probable_secrets(metadata.title, body, metadata.source_ref, *metadata.tags, *metadata.links)
     return ParsedMemory(metadata=metadata, body=body)
 
 

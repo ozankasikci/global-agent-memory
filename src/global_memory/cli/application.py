@@ -251,7 +251,7 @@ def setup_command(
                 client,
                 copy=copy,
                 with_global_instructions=with_global_instructions,
-                force=True,
+                force=False,
             )
             typer.echo(f"[ok] {client} connected: {installed.skill_path}")
 

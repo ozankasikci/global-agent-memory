@@ -24,7 +24,13 @@ from global_memory.domain.models import (
 from global_memory.errors import ErrorCode, GlobalMemoryError
 from global_memory.vault.markdown import parse_note, render_note
 from global_memory.vault.obsidian import ensure_project_overview
-from global_memory.vault.paths import canonical_path, is_managed_memory_path, note_filename, safe_vault_path
+from global_memory.vault.paths import (
+    canonical_path,
+    is_confined_vault_file,
+    is_managed_memory_path,
+    note_filename,
+    safe_vault_path,
+)
 
 
 class VaultRepository:
@@ -39,7 +45,10 @@ class VaultRepository:
 
     def _managed_files(self) -> list[Path]:
         return sorted(
-            path for path in self.vault_path.rglob("*.md") if is_managed_memory_path(path.relative_to(self.vault_path))
+            path
+            for path in self.vault_path.rglob("*.md")
+            if is_confined_vault_file(self.vault_path, path)
+            and is_managed_memory_path(path.relative_to(self.vault_path))
         )
 
     def _with_visual_properties(

@@ -133,6 +133,35 @@ def test_invalid_notes_are_isolated_and_recorded(tmp_path: Path) -> None:
     assert tuple(event) == ("failed", ErrorCode.NOTE_INVALID.value)
 
 
+def test_direct_markdown_with_a_probable_secret_is_never_indexed(tmp_path: Path) -> None:
+    note = active_note(tmp_path)
+    note.path.write_text(note.path.read_text() + "\npassword = synthetic-secret-12345\n")
+    database = IndexDatabase(tmp_path / "data" / "memory.db")
+    indexer = Indexer(tmp_path / "vault", database)
+
+    report = indexer.full_reindex()
+
+    assert report.indexed == 0
+    assert report.invalid == 1
+    assert not indexer.keyword_search("synthetic-secret-12345")
+
+
+def test_symlinked_markdown_is_not_indexed_or_incrementally_accepted(tmp_path: Path) -> None:
+    note = active_note(tmp_path)
+    outside = tmp_path / "outside.md"
+    note.path.rename(outside)
+    note.path.symlink_to(outside)
+    database = IndexDatabase(tmp_path / "data" / "memory.db")
+    indexer = Indexer(tmp_path / "vault", database)
+
+    report = indexer.full_reindex()
+
+    assert report.indexed == 0
+    with pytest.raises(GlobalMemoryError) as caught:
+        indexer.index_path(note.relative_path)
+    assert caught.value.code is ErrorCode.PATH_OUTSIDE_VAULT
+
+
 def test_obsidian_support_assets_are_not_reported_as_invalid_memories(tmp_path: Path) -> None:
     vault = tmp_path / "vault"
     vault.mkdir()

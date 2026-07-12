@@ -2,6 +2,8 @@
 
 # Global Agent Memory
 
+<!-- mcp-name: io.github.ozankasikci/global-agent-memory -->
+
 > Local-first, project-aware, durable memory for Claude Code, Codex, and other
 > MCP-compatible agents.
 
@@ -9,6 +11,7 @@
 [![MCP contract](https://img.shields.io/badge/MCP-contract%20v1-5A67D8?style=flat-square)](docs/mcp-contract-v1.md)
 [![Local first](https://img.shields.io/badge/storage-local--first-2F855A?style=flat-square)](#security-model)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](pyproject.toml)
+[![GitHub release](https://img.shields.io/github/v/release/ozankasikci/global-agent-memory?style=flat-square)](https://github.com/ozankasikci/global-agent-memory/releases/latest)
 
 Global Agent Memory gives multiple coding agents one shared, reviewable memory without
 handing control of your knowledge base to a hosted service. Markdown files are
@@ -39,6 +42,19 @@ Agents propose memories as **candidates**. A human reviews them before they beco
 durable, controls their visibility, and can later update, supersede, archive, or
 hard-delete them.
 
+### How it compares
+
+| Approach | Shared across agents | Human-reviewable | Project-aware | Owner-controlled access | Portable source of truth |
+| --- | :---: | :---: | :---: | :---: | :---: |
+| `CLAUDE.md` / `AGENTS.md` | Limited | ✓ | ✓ | — | ✓ |
+| Basic memory MCP | ✓ | Varies | Varies | Varies | Varies |
+| Hosted agent memory | ✓ | Varies | ✓ | Provider-defined | — |
+| **Global Agent Memory** | **✓** | **✓** | **✓** | **✓** | **Markdown** |
+
+Use project instruction files for compact rules that always belong in a prompt. Use
+Global Agent Memory when knowledge should be searchable, shared between clients,
+reviewed by a person, updated over time, or hidden behind explicit permission.
+
 ## Highlights
 
 - **Shared across agents** — Claude Code, Codex, and other MCP clients use the same
@@ -62,6 +78,15 @@ hard-delete them.
 - **Local security boundary** — the daemon binds to `127.0.0.1` and requires a generated
   bearer token stored outside the Vault.
 
+### Built for real project vaults
+
+The opt-in performance suite creates **10,000 synthetic memories** and exercises the
+same indexing and retrieval paths used by the daemon. On the recorded macOS ARM64
+baseline, a full rebuild takes 36.5 seconds, warm keyword search P95 is 56 ms, warm
+hybrid search P95 is 76 ms, and incremental stdio proxy overhead is 1.5 ms. Results vary
+by machine; the changed-note, search, and proxy budgets run as regression gates. See the
+[methodology and complete baseline](docs/performance-baseline.md).
+
 ## Three surfaces, one memory system
 
 Global Agent Memory is more than an MCP server. Agents, owners, and knowledge workers
@@ -84,6 +109,10 @@ Obsidian, the dashboard, or both without creating separate copies of your memory
 <p align="center"><sub>Real dashboard UI with synthetic Atlas project data. No private Vault content is shown.</sub></p>
 
 ## Quick start
+
+This is the shortest path to persistent memory for Claude Code, Codex, and other MCP
+clients. The guided installer creates the local service, Obsidian-compatible Vault,
+dashboard, MCP registrations, and agent skills together.
 
 ### Requirements
 
@@ -405,6 +434,19 @@ make contract-check
 Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), and keep
 changes compatible with the frozen V1 contract unless a parallel major contract is
 intentionally introduced.
+
+## Community and roadmap
+
+- Ask usage questions and share agent workflows in
+  [GitHub Discussions](https://github.com/ozankasikci/global-agent-memory/discussions).
+- Pick up a scoped contribution from the
+  [`good first issue`](https://github.com/ozankasikci/global-agent-memory/labels/good%20first%20issue)
+  or [`help wanted`](https://github.com/ozankasikci/global-agent-memory/labels/help%20wanted)
+  queues.
+- Follow planned distribution, security, and integration work on the
+  [public roadmap](https://github.com/ozankasikci/global-agent-memory/issues?q=is%3Aissue%20state%3Aopen%20label%3Aroadmap).
+- If the project is useful, starring the repository helps other agent-tooling users
+  discover it.
 
 ## Documentation
 

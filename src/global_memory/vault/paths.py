@@ -85,6 +85,11 @@ def safe_vault_path(vault: Path, relative: Path) -> Path:
     return candidate
 
 
+def is_confined_vault_file(vault: Path, path: Path) -> bool:
+    """Return whether a regular, non-symlink file resolves inside the Vault."""
+    return not path.is_symlink() and path.is_file() and path.resolve().is_relative_to(vault.resolve())
+
+
 def is_managed_memory_path(relative: Path) -> bool:
     """Distinguish canonical memory notes from Obsidian-facing support assets."""
     if relative.suffix.casefold() != ".md" or not relative.parts:

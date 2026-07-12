@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import plistlib
 import subprocess
 import sys
@@ -47,6 +49,42 @@ def test_restore_rejects_zip_traversal(tmp_path: Path) -> None:
         restore_vault(archive, tmp_path / "vault")
     assert caught.value.code is ErrorCode.PATH_OUTSIDE_VAULT
     assert not (tmp_path / "outside.md").exists()
+
+
+def test_backup_rejects_destination_inside_vault_and_symlinks(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "note.md").write_text("safe")
+    with pytest.raises(GlobalMemoryError) as inside:
+        backup_vault(vault, vault / "backup.zip")
+    assert inside.value.code is ErrorCode.PATH_OUTSIDE_VAULT
+
+    outside = tmp_path / "outside.md"
+    outside.write_text("not canonical")
+    (vault / "linked.md").symlink_to(outside)
+    with pytest.raises(GlobalMemoryError) as linked:
+        backup_vault(vault, tmp_path / "backup.zip")
+    assert linked.value.code is ErrorCode.PATH_OUTSIDE_VAULT
+
+
+def test_restore_integrity_failure_leaves_no_partial_vault(tmp_path: Path) -> None:
+    archive = tmp_path / "corrupt.zip"
+    first = b"valid"
+    second = b"corrupt"
+    manifest = {
+        "first.md": hashlib.sha256(first).hexdigest(),
+        "second.md": "0" * 64,
+    }
+    with zipfile.ZipFile(archive, "w") as stream:
+        stream.writestr("first.md", first)
+        stream.writestr("second.md", second)
+        stream.writestr(".global-memory-backup.json", json.dumps({"files": manifest}))
+
+    vault = tmp_path / "vault"
+    with pytest.raises(GlobalMemoryError) as caught:
+        restore_vault(archive, vault)
+    assert caught.value.code is ErrorCode.NOTE_INVALID
+    assert not vault.exists()
 
 
 @pytest.mark.parametrize("kind", ["launchd", "systemd"])

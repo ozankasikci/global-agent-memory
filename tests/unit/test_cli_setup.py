@@ -127,7 +127,7 @@ def test_setup_composes_initialization_daemon_and_requested_clients(
     assert result.exit_code == 0, result.output
     assert initialized == [vault]
     assert managers[0].installed == ["claude-code", "codex"]
-    assert all(options["force"] is True for options in managers[0].install_options or [])
+    assert all(options["force"] is False for options in managers[0].install_options or [])
     assert "Setup complete" in result.output
 
 

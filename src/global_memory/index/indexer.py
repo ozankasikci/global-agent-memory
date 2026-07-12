@@ -15,7 +15,7 @@ from global_memory.errors import ErrorCode, GlobalMemoryError
 from global_memory.index.chunks import TokenEstimator, approximate_tokens, chunk_markdown
 from global_memory.index.database import IndexDatabase
 from global_memory.vault.markdown import parse_note
-from global_memory.vault.paths import is_managed_memory_path, safe_vault_path
+from global_memory.vault.paths import is_confined_vault_file, is_managed_memory_path, safe_vault_path
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,7 +63,10 @@ class Indexer:
 
     def _files(self) -> list[Path]:
         return sorted(
-            path for path in self.vault_path.rglob("*.md") if is_managed_memory_path(path.relative_to(self.vault_path))
+            path
+            for path in self.vault_path.rglob("*.md")
+            if is_confined_vault_file(self.vault_path, path)
+            and is_managed_memory_path(path.relative_to(self.vault_path))
         )
 
     def full_reindex(self) -> ReindexReport:
@@ -107,6 +110,12 @@ class Indexer:
         if not path.exists():
             self.delete_path(relative_path)
             return "deleted"
+        if not is_confined_vault_file(self.vault_path, path):
+            raise GlobalMemoryError(
+                ErrorCode.PATH_OUTSIDE_VAULT,
+                "The indexed path is not a regular file confined to the configured Vault.",
+                details={"path": relative_path.as_posix()},
+            )
         text = path.read_text()
         note = parse_note(text)
         existing = self.database.connection.execute(

@@ -1,0 +1,53 @@
+name: Bug report
+description: Report reproducible incorrect behavior in Global Agent Memory
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping make Global Agent Memory more reliable. Please remove secrets and private memory content before posting.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Run `global-memory --version` or provide the commit SHA.
+      placeholder: 0.1.2
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options: [macOS, Linux, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Include what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Run ...
+        2. Ask the agent to ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized diagnostics
+      description: Paste relevant output from `global-memory doctor`. Remove paths, tokens, credentials, and private memory content.
+      render: shell
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed tokens, credentials, private paths, and private memory content from this report.
+          required: true
