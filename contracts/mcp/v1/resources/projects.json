@@ -1,0 +1,10 @@
+{
+  "contract_version": 1,
+  "description": "Read active project registry entries and aliases available to project detection.",
+  "mimeType": "application/json",
+  "name": "projects",
+  "responseSchema": {
+    "$ref": "schemas/success-envelope.json"
+  },
+  "uriTemplate": "memory://v1/projects"
+}
