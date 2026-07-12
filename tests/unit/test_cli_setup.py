@@ -36,14 +36,17 @@ class FakeManager:
     token_file: Path | None = None
 
     installed: list[ClientName] | None = None
+    install_options: list[dict[str, Any]] | None = None
     available: bool = True
 
     def __post_init__(self) -> None:
         self.installed = []
+        self.install_options = []
 
-    def install(self, client: ClientName, **_options: Any) -> SimpleNamespace:
-        assert self.installed is not None
+    def install(self, client: ClientName, **options: Any) -> SimpleNamespace:
+        assert self.installed is not None and self.install_options is not None
         self.installed.append(client)
+        self.install_options.append(options)
         return SimpleNamespace(skill_path=self.home / ".skills" / client)
 
     def status(self, client: ClientName) -> dict[str, Any]:
@@ -124,6 +127,7 @@ def test_setup_composes_initialization_daemon_and_requested_clients(
     assert result.exit_code == 0, result.output
     assert initialized == [vault]
     assert managers[0].installed == ["claude-code", "codex"]
+    assert all(options["force"] is True for options in managers[0].install_options or [])
     assert "Setup complete" in result.output
 
 

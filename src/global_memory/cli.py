@@ -134,7 +134,7 @@ def _setup_service_kind() -> str:
     )
 
 
-def _wait_for_setup_daemon(endpoint: str, *, timeout: float = 10) -> None:
+def _wait_for_setup_daemon(endpoint: str, *, timeout: float = 60) -> None:
     health_url = endpoint.removesuffix("/mcp/") + "/health/ready"
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -251,6 +251,7 @@ def setup_command(
                 client,
                 copy=copy,
                 with_global_instructions=with_global_instructions,
+                force=True,
             )
             typer.echo(f"[ok] {client} connected: {installed.skill_path}")
 

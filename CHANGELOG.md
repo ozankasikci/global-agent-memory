@@ -17,6 +17,15 @@ All notable changes are recorded here.
   individual initialization, service, integration, verification, and diagnostic
   command available for advanced use and repair.
 
+### Fixed
+
+- Wait for launchd to finish asynchronously unloading an existing managed service
+  before bootstrapping its replacement during guided setup.
+- Allow a populated Vault up to 60 seconds to finish startup reconciliation before
+  guided setup reports the native service as unavailable.
+- Refresh changed artifacts that are already recorded in the integration manifest when
+  guided setup repairs or upgrades a client, while continuing to refuse unmanaged paths.
+
 ## 0.1.2 - 2026-07-12
 
 ### Added

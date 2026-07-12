@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import plistlib
+import subprocess
 import sys
 import zipfile
 from pathlib import Path
@@ -88,8 +89,9 @@ def test_native_service_enable_and_disable_commands(tmp_path: Path, kind: str, m
     install_service(service)
     calls: list[tuple[list[str], bool]] = []
 
-    def record(command: list[str], *, check: bool) -> None:
+    def record(command: list[str], *, check: bool, **_options: object) -> subprocess.CompletedProcess[bytes]:
         calls.append((command, check))
+        return subprocess.CompletedProcess(command, 1 if command[1:2] == ["print"] else 0)
 
     monkeypatch.setattr("global_memory.operations.subprocess.run", record)
     enabled = enable_service(service)
@@ -99,10 +101,57 @@ def test_native_service_enable_and_disable_commands(tmp_path: Path, kind: str, m
     if kind == "launchd":
         assert enabled[0][:2] == ["launchctl", "bootout"]
         assert enabled[1][:2] == ["launchctl", "bootstrap"]
-        assert calls[0][1] is False and calls[1][1] is True
+        lifecycle_calls = [call for call in calls if call[0][1] != "print"]
+        assert lifecycle_calls[0][1] is False and lifecycle_calls[1][1] is False
     else:
         assert enabled[1] == ["systemctl", "--user", "enable", "--now", "global-memory.service"]
         assert disabled[0] == ["systemctl", "--user", "disable", "--now", "global-memory.service"]
+
+
+def test_launchd_enable_waits_for_the_previous_job_to_finish_unloading(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    service = render_service_file("launchd", config_file=tmp_path / "config.toml", home=tmp_path)
+    install_service(service)
+    print_results = iter([0, 0, 1])
+    calls: list[list[str]] = []
+
+    def record(command: list[str], *, check: bool, **_options: object) -> subprocess.CompletedProcess[bytes]:
+        del check
+        calls.append(command)
+        return subprocess.CompletedProcess(command, next(print_results) if command[1:2] == ["print"] else 0)
+
+    monkeypatch.setattr("global_memory.operations.subprocess.run", record)
+    monkeypatch.setattr("global_memory.operations.time.sleep", lambda _seconds: None)
+
+    enable_service(service)
+
+    assert [command[1] for command in calls] == ["bootout", "print", "print", "print", "bootstrap"]
+
+
+def test_launchd_enable_retries_bootstrap_during_the_async_removal_window(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    service = render_service_file("launchd", config_file=tmp_path / "config.toml", home=tmp_path)
+    install_service(service)
+    bootstrap_results = iter([5, 5, 0])
+    calls: list[list[str]] = []
+
+    def record(command: list[str], *, check: bool, **_options: object) -> subprocess.CompletedProcess[bytes]:
+        del check
+        calls.append(command)
+        if command[1:2] == ["print"]:
+            return subprocess.CompletedProcess(command, 1)
+        if command[1:2] == ["bootstrap"]:
+            return subprocess.CompletedProcess(command, next(bootstrap_results))
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr("global_memory.operations.subprocess.run", record)
+    monkeypatch.setattr("global_memory.operations.time.sleep", lambda _seconds: None)
+
+    enable_service(service)
+
+    assert [command[1] for command in calls].count("bootstrap") == 3
 
 
 def test_package_change_uses_active_interpreter_and_pinned_rollback(monkeypatch: pytest.MonkeyPatch) -> None:

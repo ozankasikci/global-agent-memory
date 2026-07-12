@@ -11,6 +11,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import time
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -170,9 +171,44 @@ def enable_service(service: ServiceFile) -> list[list[str]]:
     else:
         raise GlobalMemoryError(ErrorCode.CONFIG_INVALID, "Service kind must be launchd or systemd.")
     try:
-        for index, command in enumerate(commands):
-            subprocess.run(command, check=index > 0 or service.kind == "systemd")
-    except (OSError, subprocess.CalledProcessError) as exc:
+        if service.kind == "launchd":
+            subprocess.run(
+                commands[0],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            service_name = f"gui/{os.getuid()}/com.global-memory"
+            unload_deadline = time.monotonic() + 5
+            while True:
+                status = subprocess.run(
+                    ["launchctl", "print", service_name],
+                    check=False,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                if status.returncode != 0:
+                    break
+                if time.monotonic() >= unload_deadline:
+                    raise subprocess.TimeoutExpired(commands[0], 5)
+                time.sleep(0.05)
+            bootstrap_deadline = time.monotonic() + 5
+            while True:
+                bootstrap = subprocess.run(
+                    commands[1],
+                    check=False,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                if bootstrap.returncode == 0:
+                    break
+                if time.monotonic() >= bootstrap_deadline:
+                    raise subprocess.CalledProcessError(bootstrap.returncode, commands[1])
+                time.sleep(0.1)
+        else:
+            for command in commands:
+                subprocess.run(command, check=True)
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         raise GlobalMemoryError(
             ErrorCode.INTERNAL_ERROR,
             "The native user-service manager could not enable Global Agent Memory.",
