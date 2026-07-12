@@ -1,0 +1,48 @@
+{
+  "contract_version": 1,
+  "description": "Report daemon, Vault, index, watcher, semantic fallback, conflict, and transport health.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [],
+    "type": "object"
+  },
+  "name": "memory_status",
+  "outputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "contract_version": {
+        "const": 1
+      },
+      "data": {},
+      "diagnostics": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "ok": {
+        "const": true
+      },
+      "warnings": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "contract_version",
+      "ok",
+      "data",
+      "warnings",
+      "diagnostics"
+    ],
+    "type": "object"
+  }
+}
