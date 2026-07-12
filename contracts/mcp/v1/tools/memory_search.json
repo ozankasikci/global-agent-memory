@@ -1,0 +1,143 @@
+{
+  "contract_version": 1,
+  "description": "Search durable memories using project-safe keyword, semantic, hybrid, or metadata retrieval.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "access_grant": {
+        "description": "Owner-approved temporary protected-memory grant.",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "cross_project": {
+        "default": false,
+        "type": "boolean"
+      },
+      "cursor": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "include_archived": {
+        "default": false,
+        "type": "boolean"
+      },
+      "include_candidates": {
+        "default": false,
+        "type": "boolean"
+      },
+      "include_rejected": {
+        "default": false,
+        "type": "boolean"
+      },
+      "include_superseded": {
+        "default": false,
+        "type": "boolean"
+      },
+      "limit": {
+        "default": 10,
+        "maximum": 100,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "mode": {
+        "default": "hybrid",
+        "enum": [
+          "hybrid",
+          "keyword",
+          "semantic",
+          "metadata"
+        ],
+        "type": "string"
+      },
+      "project": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "query": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "scopes": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
+      },
+      "statuses": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
+      },
+      "tags": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
+      },
+      "types": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
+      },
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      },
+      "working_directory": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "required": [
+      "query"
+    ],
+    "type": "object"
+  },
+  "name": "memory_search",
+  "outputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "contract_version": {
+        "const": 1
+      },
+      "data": {},
+      "diagnostics": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "ok": {
+        "const": true
+      },
+      "warnings": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "contract_version",
+      "ok",
+      "data",
+      "warnings",
+      "diagnostics"
+    ],
+    "type": "object"
+  }
+}
