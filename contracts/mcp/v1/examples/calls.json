@@ -1,0 +1,51 @@
+{
+  "invalid": [
+    {
+      "arguments": {},
+      "reason": "query is required",
+      "tool": "memory_search"
+    },
+    {
+      "arguments": {
+        "title": "Missing request"
+      },
+      "reason": "request_id and required content fields are missing",
+      "tool": "memory_remember"
+    },
+    {
+      "arguments": {
+        "limit": 101,
+        "query": "x"
+      },
+      "reason": "limit exceeds the documented maximum",
+      "tool": "memory_search"
+    }
+  ],
+  "valid": [
+    {
+      "arguments": {
+        "mode": "keyword",
+        "query": "VERSION_CONFLICT"
+      },
+      "tool": "memory_search"
+    },
+    {
+      "arguments": {
+        "project": "Global Agent Memory",
+        "task": "Implement safe retries"
+      },
+      "tool": "memory_context"
+    },
+    {
+      "arguments": {
+        "content": "Retries are idempotent.",
+        "project": "Global Agent Memory",
+        "request_id": "req-1",
+        "scope": "project",
+        "title": "Retry rule",
+        "type": "convention"
+      },
+      "tool": "memory_remember"
+    }
+  ]
+}
