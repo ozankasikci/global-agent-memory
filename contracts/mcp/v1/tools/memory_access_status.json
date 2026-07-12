@@ -1,0 +1,50 @@
+{
+  "contract_version": 1,
+  "description": "Poll an access request and receive the temporary grant only after the owner approves it.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "request_id": {
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    "required": [
+      "request_id"
+    ],
+    "type": "object"
+  },
+  "name": "memory_access_status",
+  "outputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "contract_version": {
+        "const": 1
+      },
+      "data": {},
+      "diagnostics": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "ok": {
+        "const": true
+      },
+      "warnings": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "contract_version",
+      "ok",
+      "data",
+      "warnings",
+      "diagnostics"
+    ],
+    "type": "object"
+  }
+}
