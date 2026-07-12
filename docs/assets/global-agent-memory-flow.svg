@@ -1,0 +1,79 @@
+<svg width="1600" height="660" viewBox="0 0 1600 660" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="surface" x1="120" y1="60" x2="1480" y2="600" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111114"/>
+      <stop offset="1" stop-color="#09090B"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#F4E7BF"/>
+      <stop offset="1" stop-color="#A98D49"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.34"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L9 5L1 9" stroke="#52525B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="660" rx="32" fill="url(#surface)"/>
+  <rect x="0.5" y="0.5" width="1599" height="659" rx="31.5" stroke="#27272A"/>
+
+  <g font-family="Inter, ui-sans-serif, system-ui, -apple-system, sans-serif">
+    <text x="96" y="94" fill="#FAFAFA" font-size="34" font-weight="650" letter-spacing="-0.7">One memory system. Three clear surfaces.</text>
+    <text x="96" y="134" fill="#A1A1AA" font-size="18">Agents remember through MCP. People own the knowledge and control what becomes available.</text>
+
+    <g transform="translate(1260 72)">
+      <rect width="244" height="38" rx="19" fill="#17140C" stroke="#3B321C"/>
+      <circle cx="23" cy="19" r="5" fill="#CBB36D"/>
+      <text x="40" y="25" fill="#D8C9A3" font-size="13" font-weight="600" letter-spacing="1.2">LOCAL-FIRST · PRIVATE</text>
+    </g>
+
+    <path d="M416 346H548" stroke="#52525B" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M932 346H1064" stroke="#52525B" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M740 438V514" stroke="#52525B" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <g filter="url(#shadow)">
+      <rect x="96" y="224" width="320" height="244" rx="20" fill="#101013" stroke="#27272A"/>
+      <rect x="120" y="248" width="48" height="48" rx="12" fill="#18181B"/>
+      <path d="M135 272H153M144 263V281" stroke="#D4D4D8" stroke-width="2" stroke-linecap="round"/>
+      <text x="120" y="338" fill="#FAFAFA" font-size="23" font-weight="650">AI agents</text>
+      <text x="120" y="371" fill="#A1A1AA" font-size="16">Claude Code · Codex · MCP clients</text>
+      <text x="120" y="414" fill="#D4D4D8" font-size="15">Retrieve context</text>
+      <text x="120" y="442" fill="#D4D4D8" font-size="15">Propose and update memories</text>
+    </g>
+
+    <g filter="url(#shadow)">
+      <rect x="548" y="204" width="384" height="264" rx="22" fill="#12100A" stroke="#4A3C1D"/>
+      <rect x="572" y="228" width="56" height="56" rx="14" fill="url(#accent)"/>
+      <path d="M588 256H612M600 244V268" stroke="#19160D" stroke-width="2.4" stroke-linecap="round"/>
+      <text x="572" y="332" fill="#FAFAFA" font-size="25" font-weight="680">Global Agent Memory</text>
+      <text x="572" y="367" fill="#CBB36D" font-size="16" font-weight="600">Authenticated MCP daemon</text>
+      <text x="572" y="410" fill="#D4D4D8" font-size="15">Project isolation · lifecycle rules</text>
+      <text x="572" y="438" fill="#D4D4D8" font-size="15">Search · permissions · audit trail</text>
+    </g>
+
+    <g filter="url(#shadow)">
+      <rect x="1064" y="224" width="440" height="244" rx="20" fill="#101013" stroke="#27272A"/>
+      <text x="1088" y="274" fill="#FAFAFA" font-size="21" font-weight="650">Human control</text>
+
+      <rect x="1088" y="300" width="182" height="132" rx="14" fill="#151518" stroke="#2D2D31"/>
+      <circle cx="1112" cy="326" r="8" fill="#7C6ACB"/>
+      <text x="1130" y="332" fill="#E4E4E7" font-size="16" font-weight="600">Obsidian</text>
+      <text x="1112" y="366" fill="#A1A1AA" font-size="14">Canonical Markdown</text>
+      <text x="1112" y="392" fill="#A1A1AA" font-size="14">Links · Bases · graph</text>
+
+      <rect x="1290" y="300" width="190" height="132" rx="14" fill="#151518" stroke="#2D2D31"/>
+      <circle cx="1314" cy="326" r="8" fill="#CBB36D"/>
+      <text x="1332" y="332" fill="#E4E4E7" font-size="16" font-weight="600">Dashboard</text>
+      <text x="1314" y="366" fill="#A1A1AA" font-size="14">Review · classify</text>
+      <text x="1314" y="392" fill="#A1A1AA" font-size="14">Approve access · operate</text>
+    </g>
+
+    <g>
+      <rect x="548" y="514" width="384" height="86" rx="16" fill="#0E0E11" stroke="#27272A"/>
+      <text x="572" y="550" fill="#E4E4E7" font-size="16" font-weight="600">Disposable local search</text>
+      <text x="572" y="578" fill="#A1A1AA" font-size="14">SQLite FTS5 · Ollama · sqlite-vec</text>
+    </g>
+  </g>
+</svg>

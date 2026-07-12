@@ -30,7 +30,7 @@ describe("CandidateDetail", () => {
     await waitFor(() => expect(onApprove).toHaveBeenCalledWith(candidate, {
       visibility: "protected",
       access_policy: "user_approval",
-      allowed_projects: ["Naila"],
+      allowed_projects: ["Atlas"],
       max_permission: "read",
     }))
   })

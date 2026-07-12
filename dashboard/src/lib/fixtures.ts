@@ -5,7 +5,7 @@ const now = "2026-07-11T14:22:00Z"
 function memory(overrides: Partial<MemoryRecord> & Pick<MemoryRecord, "id" | "title" | "type" | "status">): MemoryRecord {
   return {
     scope: "project",
-    project: "Naila",
+    project: "Atlas",
     visibility: "standard",
     access_policy: "user_approval",
     allowed_projects: [],
@@ -22,7 +22,7 @@ function memory(overrides: Partial<MemoryRecord> & Pick<MemoryRecord, "id" | "ti
     summary: "",
     evidence: null,
     path: `/tmp/${overrides.id}.md`,
-    relative_path: `20 Projects/Naila/${overrides.id}.md`,
+    relative_path: `20 Projects/Atlas/${overrides.id}.md`,
     version: now,
     possible_duplicates: [],
     conflicts: [],
@@ -96,20 +96,20 @@ const active = [
 ]
 
 active.push(
-  memory({ id: "mem_protected_topology", title: "Production deployment topology", type: "reference", status: "active", visibility: "protected", access_policy: "user_approval", max_permission: "manage", allowed_projects: ["Naila"], summary: "Protected infrastructure context.", body: "# Reference\n\nProduction deployment topology and service boundaries.", tags: ["infrastructure"] }),
+  memory({ id: "mem_protected_topology", title: "Production deployment topology", type: "reference", status: "active", visibility: "protected", access_policy: "user_approval", max_permission: "manage", allowed_projects: ["Atlas"], summary: "Protected infrastructure context.", body: "# Reference\n\nProduction deployment topology and service boundaries.", tags: ["infrastructure"] }),
   memory({ id: "mem_sealed_oncall", title: "Sealed memory", type: "reference", status: "active", visibility: "sealed", summary: "Unlock once to view this memory. Access will be recorded.", body: "", path: "", relative_path: "", tags: [] }),
 )
 
 export const fixtureDashboard: DashboardData = {
-  projects: [{ id: "proj_naila", name: "Naila", aliases: [], roots: ["/Users/ozan/Projects/naila"], git_remotes: [], organization: null, active: true }],
-  project_stats: { Naila: { memories: active.length, candidates: candidates.length } },
-  selected_project: "Naila",
+  projects: [{ id: "proj_atlas", name: "Atlas", aliases: [], roots: ["/Users/demo/Projects/atlas"], git_remotes: [], organization: null, active: true }],
+  project_stats: { Atlas: { memories: active.length, candidates: candidates.length } },
+  selected_project: "Atlas",
   candidates,
   memories: [...candidates, ...active],
   status: {
-    package_version: "0.1.0",
-    daemon_version: "0.1.0",
-    vault_path: "/Users/ozan/Documents/Global Agent Memory",
+    package_version: "0.1.2",
+    daemon_version: "0.1.2",
+    vault_path: "/Users/demo/Documents/Global Agent Memory",
     document_count: 8,
     chunk_count: 18,
     pending_index_jobs: 0,
@@ -131,7 +131,7 @@ export const fixtureDashboard: DashboardData = {
     { actor: "codex", action: "proposed", target: "TypeScript strict mode is enabled repo-wide", created_at: "2026-07-10T11:00:00Z", kind: "candidate_created" },
   ],
   access: {
-    requests: [{ id: "req_demo", agent: "Claude Code", project: "Naila", purpose: "Investigate a production deployment failure", permission: "manage", requested_duration: "task", sealed_match_count: 1, matched_count: 1, matches: [{ id: "mem_protected_topology", title: "Production deployment topology", type: "reference", project: "Naila", access_policy: "user_approval", max_permission: "manage", eligible: true }], status: "pending", created_at: now, resolved_at: null, resolution_note: null }],
+    requests: [{ id: "req_demo", agent: "Claude Code", project: "Atlas", purpose: "Investigate a production deployment failure", permission: "manage", requested_duration: "task", sealed_match_count: 1, matched_count: 1, matches: [{ id: "mem_protected_topology", title: "Production deployment topology", type: "reference", project: "Atlas", access_policy: "user_approval", max_permission: "manage", eligible: true }], status: "pending", created_at: now, resolved_at: null, resolution_note: null }],
     grants: [],
     events: [{ id: 1, request_id: "req_demo", grant_id: null, agent: "Claude Code", action: "requested", purpose: "Investigate a production deployment failure", permission: "read", scope: "1 protected match", actor: "agent", status: "pending", created_at: now }],
   },

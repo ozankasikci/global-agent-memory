@@ -17,6 +17,8 @@ dashboard lets a human approve, edit, protect, or remove what agents remember.
 
 **One Vault. Multiple agents. Human-controlled memory.**
 
+![Global Agent Memory connects AI agents through a local MCP daemon to owner-controlled Obsidian and dashboard surfaces](docs/assets/global-agent-memory-flow.svg)
+
 [Quick start](#quick-start) · [Obsidian Vault](#obsidian-vault) ·
 [Dashboard](#dashboard) · [How it works](#how-it-works) ·
 [Security](#security-model) · [MCP contract](#mcp-interface) · [Documentation](#documentation)
@@ -74,6 +76,12 @@ use the same canonical memories through three purpose-built surfaces:
 The Vault is the durable source of truth. The dashboard is a complementary control
 plane, and the MCP interface is the safe automation layer used by agents. You can use
 Obsidian, the dashboard, or both without creating separate copies of your memory.
+
+### Dashboard at a glance
+
+![Global Agent Memory dashboard overview showing the review queue, protected-memory access request, project conventions, solutions, preferences, and recent agent activity](docs/assets/dashboard-overview.png)
+
+<p align="center"><sub>Real dashboard UI with synthetic Atlas project data. No private Vault content is shown.</sub></p>
 
 ## Quick start
 
@@ -224,6 +232,10 @@ The authenticated dashboard is the owner control plane for:
 - sealed-memory owner unlocks with audit records;
 - project switching, system health, reindexing, and backups;
 - opening canonical Markdown in Obsidian or the local file viewer.
+
+![Candidate review in the Global Agent Memory dashboard showing evidence, confidence, conflict detection, and owner approval actions](docs/assets/dashboard-review.png)
+
+<p align="center"><sub>Candidate review keeps evidence and conflicts visible before an owner approves durable memory.</sub></p>
 
 Dashboard launch URLs expire after 60 seconds, can be exchanged only once, and create a
 local HttpOnly session. Do not share a launch URL.
