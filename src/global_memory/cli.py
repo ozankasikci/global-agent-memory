@@ -16,6 +16,7 @@ from rich import print_json
 from global_memory import __version__
 from global_memory.application.diagnostics_service import run_diagnostics
 from global_memory.config import get_platform_paths, load_settings
+from global_memory.domain.models import SUPPORTED_MEMORY_TYPES
 from global_memory.errors import ErrorCode, GlobalMemoryError
 from global_memory.integrations.manager import ClientName, IntegrationManager
 from global_memory.integrations.verify import verify_client
@@ -306,7 +307,10 @@ def context_command(
 def remember_command(
     title: Annotated[str, typer.Argument()],
     content: Annotated[str, typer.Argument()],
-    memory_type: Annotated[str, typer.Option("--type")],
+    memory_type: Annotated[
+        str,
+        typer.Option("--type", help=f"Memory type: {', '.join(SUPPORTED_MEMORY_TYPES)}."),
+    ],
     scope: Annotated[str, typer.Option("--scope")],
     project: Annotated[str | None, typer.Option("--project")] = None,
     working_directory: Annotated[Path | None, typer.Option("--working-directory")] = None,

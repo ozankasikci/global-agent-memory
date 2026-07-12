@@ -4,6 +4,21 @@ All notable changes are recorded here.
 
 ## Unreleased
 
+## 0.1.1 - 2026-07-12
+
+### Fixed
+
+- Return a structured `NOTE_INVALID` response for unsupported `memory_remember` types instead of leaking a non-serializable validator exception.
+- Scope dashboard activity to the selected project, including safe attribution for future hard-deleted audit events.
+
+### Changed
+
+- Enumerate the closed V1 memory types in MCP discovery and CLI help so agents and people can choose a valid type without trial and error.
+- Replace the minimal repository README with a complete installation, usage, architecture, security, MCP, and contributor guide.
+
+### Added
+
+- Add owner-controlled Protected and Sealed memory access with exact-scope temporary grants, permission and duration downgrades, live policy revocation, and dashboard approval controls.
 - Add a ShadCN/TypeScript local dashboard for project overview, candidate review and editing, duplicate/conflict comparison, search, activity, and system health; expose secure launch through both `global-memory dashboard` and the `memory_dashboard_open` MCP tool.
 - Rename the product to Global Agent Memory while retaining the V1 `global-memory` CLI, package, configuration, Python, skill, and MCP identifiers for backward compatibility.
 - Freeze the MCP V1 discovery contract, schemas, prompts, resources, examples, and stable error codes.

@@ -10,7 +10,7 @@ from typing import Any
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
 
-SUPPORTED_MEMORY_TYPES = {
+SUPPORTED_MEMORY_TYPES = (
     "project",
     "decision",
     "fact",
@@ -20,7 +20,7 @@ SUPPORTED_MEMORY_TYPES = {
     "session_summary",
     "entity",
     "reference",
-}
+)
 
 
 class MemoryScope(StrEnum):

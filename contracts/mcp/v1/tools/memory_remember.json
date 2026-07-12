@@ -72,7 +72,18 @@
         "type": "string"
       },
       "type": {
-        "minLength": 1,
+        "description": "Closed V1 memory type.",
+        "enum": [
+          "project",
+          "decision",
+          "fact",
+          "solution",
+          "preference",
+          "convention",
+          "session_summary",
+          "entity",
+          "reference"
+        ],
         "type": "string"
       },
       "verbose": {

@@ -114,7 +114,9 @@ class SQLiteProjectRegistry:
             draft = ProjectDraft.model_validate(values)
         except ValidationError as exc:
             raise GlobalMemoryError(
-                ErrorCode.NOTE_INVALID, "The project update is invalid.", details={"errors": exc.errors()}
+                ErrorCode.NOTE_INVALID,
+                "The project update is invalid.",
+                details={"errors": exc.errors(include_context=False)},
             ) from exc
         record = self._normalize(current.id, draft)
         self._check_names(record)

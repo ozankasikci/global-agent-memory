@@ -40,6 +40,11 @@ def test_registry_crud_aliases_and_deactivation(tmp_path: Path) -> None:
     assert projects.get("a-app").organization == "New Org"
     assert [item.id for item in projects.list()] == [created.id]
 
+    with pytest.raises(GlobalMemoryError) as invalid_update:
+        projects.update(created.id, {"roots": [Path("relative-root")]})
+    assert invalid_update.value.code is ErrorCode.NOTE_INVALID
+    assert "ctx" not in invalid_update.value.details["errors"][0]
+
     projects.deactivate(created.id)
     assert projects.list() == []
     with pytest.raises(GlobalMemoryError) as caught:

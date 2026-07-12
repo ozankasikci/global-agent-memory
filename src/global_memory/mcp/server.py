@@ -610,10 +610,16 @@ def create_mcp_server(container: ServiceContainer) -> Server[Any]:
             try:
                 jsonschema.validate(arguments, definition["inputSchema"])
             except jsonschema.ValidationError as exc:
+                details: dict[str, Any] = {
+                    "path": list(exc.absolute_path),
+                    "reason": exc.message,
+                }
+                if exc.validator == "enum" and isinstance(exc.validator_value, list):
+                    details["allowed_values"] = exc.validator_value
                 raise GlobalMemoryError(
                     ErrorCode.NOTE_INVALID,
                     "The MCP tool arguments are invalid.",
-                    details={"path": list(exc.absolute_path), "reason": exc.message},
+                    details=details,
                     remediation="Correct the arguments using the discovered input schema.",
                 ) from exc
             data, warnings = _dispatch(container, name, dict(arguments))
@@ -628,7 +634,9 @@ def create_mcp_server(container: ServiceContainer) -> Server[Any]:
                 exc
                 if isinstance(exc, GlobalMemoryError)
                 else GlobalMemoryError(
-                    ErrorCode.NOTE_INVALID, "The request payload is invalid.", details={"errors": exc.errors()}
+                    ErrorCode.NOTE_INVALID,
+                    "The request payload is invalid.",
+                    details={"errors": exc.errors(include_context=False)},
                 )
             )
             envelope = _jsonable(failure(error))

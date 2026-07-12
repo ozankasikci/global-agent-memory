@@ -1,9 +1,9 @@
 # V1 release checklist
 
-Date: 2026-07-11  
-Package: `0.1.0`  
-MCP contract: `v1`  
-Status: **Automated acceptance passed; release tag blocked on live client/UI acceptance and remote CI evidence.**
+- Date: 2026-07-12
+- Package: `0.1.1`
+- MCP contract: `v1`
+- Status: **`v0.1.1` development release ready; a stable V1 release remains blocked on complete live client/UI acceptance.**
 
 ## Required product scenarios
 

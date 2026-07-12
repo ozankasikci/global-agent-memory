@@ -6,7 +6,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from global_memory.domain.models import MemoryMetadata, MemoryScope, MemoryStatus
+from global_memory.domain.models import SUPPORTED_MEMORY_TYPES, MemoryDraft, MemoryMetadata, MemoryScope, MemoryStatus
 from global_memory.errors import ErrorCode, GlobalMemoryError
 from global_memory.vault.markdown import parse_note, render_note
 
@@ -61,6 +61,16 @@ def test_validation_enforces_project_and_temporal_invariants() -> None:
 def test_unknown_memory_type_is_preserved_for_future_compatibility() -> None:
     note = metadata(type="future_custom_type")
     assert note.type == "future_custom_type"
+
+
+def test_memory_drafts_use_closed_types_and_require_project_identity() -> None:
+    draft = MemoryDraft(title="Known", content="Body", type=SUPPORTED_MEMORY_TYPES[0], scope="global")
+    assert draft.type == SUPPORTED_MEMORY_TYPES[0]
+
+    with pytest.raises(ValueError, match="unsupported memory type"):
+        MemoryDraft(title="Unknown", content="Body", type="technique", scope="global")
+    with pytest.raises(ValueError, match="project-scoped memories require a project"):
+        MemoryDraft(title="Missing project", content="Body", type="fact", scope="project")
 
 
 def test_legacy_default_permission_is_read_and_serialized_as_max_permission() -> None:

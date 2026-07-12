@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from global_memory.domain.models import SUPPORTED_MEMORY_TYPES
+
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "contracts" / "mcp" / "v1"
 
@@ -145,7 +147,11 @@ TOOLS = [
                 "request_id": REQUEST_ID,
                 "title": {"type": "string", "minLength": 1},
                 "content": {"type": "string", "minLength": 1},
-                "type": {"type": "string", "minLength": 1},
+                "type": {
+                    "type": "string",
+                    "enum": list(SUPPORTED_MEMORY_TYPES),
+                    "description": "Closed V1 memory type.",
+                },
                 "scope": {"type": "string", "enum": ["global", "organization", "project", "session"]},
                 "project": OPT_STRING,
                 "tags": STRING_ARRAY,
@@ -527,7 +533,7 @@ def write_json(path: Path, value: Any) -> None:
 def main() -> None:
     discovery = {
         "product": "global-memory",
-        "product_version": "0.1.0",
+        "product_version": "0.1.1",
         "contract_version": 1,
         "stability": "frozen",
         "tools": TOOLS,

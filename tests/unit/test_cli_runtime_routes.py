@@ -6,6 +6,15 @@ import pytest
 from typer.testing import CliRunner
 
 import global_memory.cli as cli
+from global_memory.domain.models import SUPPORTED_MEMORY_TYPES
+
+
+def test_remember_help_enumerates_supported_memory_types() -> None:
+    result = CliRunner().invoke(cli.app, ["remember", "--help"])
+
+    assert result.exit_code == 0
+    for memory_type in SUPPORTED_MEMORY_TYPES:
+        assert memory_type in result.stdout
 
 
 def test_every_runtime_cli_command_routes_to_a_frozen_mcp_tool(monkeypatch: pytest.MonkeyPatch) -> None:

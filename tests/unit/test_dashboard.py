@@ -147,6 +147,21 @@ async def test_dashboard_routes_require_session_and_mutate_through_memory_servic
         assert protected["max_permission"] == "manage"
         assert protected["allowed_projects"] == ["Alpha"]
 
+        invalid_classification = await client.post(
+            f"/ui/api/memories/{candidate.metadata.id}/classify",
+            headers={"X-GAM-Action": "dashboard"},
+            json={
+                "expected_updated_at": protected["version"],
+                "visibility": "protected",
+                "access_policy": "user_approval",
+                "allowed_projects": [],
+                "max_permission": "technique",
+            },
+        )
+        assert invalid_classification.status_code == 400
+        invalid_errors = invalid_classification.json()["error"]["details"]["errors"]
+        assert invalid_errors and "ctx" not in invalid_errors[0]
+
         access_request = container.access.request(
             agent="Claude Code",
             purpose="Investigate stable request identifiers",

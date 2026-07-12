@@ -470,7 +470,9 @@ def dashboard_routes(container: Any, sessions: DashboardSessions) -> list[Any]:
                 error
                 if isinstance(error, GlobalMemoryError)
                 else GlobalMemoryError(
-                    ErrorCode.NOTE_INVALID, "The dashboard action is invalid.", details={"errors": error.errors()}
+                    ErrorCode.NOTE_INVALID,
+                    "The dashboard action is invalid.",
+                    details={"errors": error.errors(include_context=False)},
                 )
             )
             status_code = 409 if mapped.code is ErrorCode.VERSION_CONFLICT else 400
@@ -521,7 +523,9 @@ def dashboard_routes(container: Any, sessions: DashboardSessions) -> list[Any]:
                 error
                 if isinstance(error, GlobalMemoryError)
                 else GlobalMemoryError(
-                    ErrorCode.NOTE_INVALID, "The classification is invalid.", details={"errors": error.errors()}
+                    ErrorCode.NOTE_INVALID,
+                    "The classification is invalid.",
+                    details={"errors": error.errors(include_context=False)},
                 )
             )
             return _error_response(mapped, status_code=409 if mapped.code is ErrorCode.VERSION_CONFLICT else 400)

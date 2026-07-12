@@ -6,6 +6,8 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
+from global_memory.domain.models import SUPPORTED_MEMORY_TYPES
+
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_ROOT = ROOT / "contracts" / "mcp" / "v1"
 
@@ -93,6 +95,13 @@ class ContractFilesTest(unittest.TestCase):
         for tool in self.discovery["tools"]:
             if tool["name"] in mutation_names:
                 self.assertIn("request_id", tool["inputSchema"]["required"])
+
+    def test_memory_remember_enumerates_supported_types(self) -> None:
+        remember = next(tool for tool in self.discovery["tools"] if tool["name"] == "memory_remember")
+        self.assertEqual(
+            remember["inputSchema"]["properties"]["type"]["enum"],
+            list(SUPPORTED_MEMORY_TYPES),
+        )
 
     def test_examples_are_partitioned_into_valid_and_invalid(self) -> None:
         examples = json.loads((CONTRACT_ROOT / "examples" / "calls.json").read_text())

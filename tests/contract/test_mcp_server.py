@@ -7,6 +7,7 @@ import pytest
 from mcp import types
 from mcp.shared.memory import create_connected_server_and_client_session
 
+from global_memory.domain.models import SUPPORTED_MEMORY_TYPES
 from global_memory.mcp.server import build_container, create_mcp_server
 
 pytestmark = [pytest.mark.contract, pytest.mark.asyncio]
@@ -221,6 +222,22 @@ async def test_structured_errors_resources_and_prompts_through_protocol(tmp_path
         invalid = await session.call_tool("memory_search", {})
         assert invalid.isError and invalid.structuredContent
         assert invalid.structuredContent["error"]["code"] == "NOTE_INVALID"
+
+        invalid_type = await session.call_tool(
+            "memory_remember",
+            {
+                "request_id": "invalid-type",
+                "title": "Piano technique",
+                "content": "Use a relaxed wrist.",
+                "type": "technique",
+                "scope": "global",
+            },
+        )
+        assert invalid_type.isError and invalid_type.structuredContent
+        invalid_type_error = invalid_type.structuredContent["error"]
+        assert invalid_type_error["code"] == "NOTE_INVALID"
+        assert invalid_type_error["details"]["path"] == ["type"]
+        assert invalid_type_error["details"]["allowed_values"] == list(SUPPORTED_MEMORY_TYPES)
 
         traversal = await session.call_tool("memory_reindex", {"request_id": "traversal", "paths": ["../outside.md"]})
         assert traversal.isError and traversal.structuredContent
