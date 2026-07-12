@@ -24,6 +24,7 @@ from global_memory.domain.models import MemoryStatus, StoredMemory
 from global_memory.errors import ErrorCode, GlobalMemoryError
 from global_memory.mcp.contract import failure, success
 from global_memory.operations import backup_vault
+from global_memory.vault.paths import safe_component
 
 DASHBOARD_COOKIE = "global_agent_memory_dashboard"
 TICKET_TTL = timedelta(seconds=60)
@@ -182,8 +183,12 @@ def serialize_memory(
     }
 
 
-def _activity(container: Any, memories: list[StoredMemory]) -> list[dict[str, Any]]:
-    titles = {memory.metadata.id: memory.metadata.title for memory in memories}
+def _activity(
+    container: Any,
+    memories: list[StoredMemory],
+    selected_project: str | None = None,
+) -> list[dict[str, Any]]:
+    by_id = {memory.metadata.id: memory for memory in memories}
     try:
         lines = container.repository.audit_path.read_text().splitlines()[-100:]
     except OSError:
@@ -194,13 +199,26 @@ def _activity(container: Any, memories: list[StoredMemory]) -> list[dict[str, An
             record = json.loads(line)
         except json.JSONDecodeError:
             continue
+        memory = by_id.get(str(record.get("memory_id")))
+        details = record.get("details") if isinstance(record.get("details"), dict) else {}
+        project = details.get("project") or (memory.metadata.project if memory is not None else None)
+        path_project: str | None = None
+        relative_path = Path(str(record.get("relative_path", "")))
+        if len(relative_path.parts) >= 2 and relative_path.parts[0] == "20 Projects":
+            path_project = relative_path.parts[1]
+        if selected_project is not None:
+            is_selected = project == selected_project or (
+                project is None and path_project == safe_component(selected_project)
+            )
+            if not is_selected:
+                continue
         event = str(record.get("event", "changed"))
         action = event.removeprefix("memory_").removesuffix("_created").replace("_", " ")
         records.append(
             {
                 "actor": "memory service",
                 "action": action,
-                "target": titles.get(str(record.get("memory_id")), str(record.get("memory_id", "memory"))),
+                "target": memory.metadata.title if memory is not None else str(record.get("memory_id", "memory")),
                 "created_at": str(record.get("at", "")),
                 "kind": event,
             }
@@ -378,7 +396,7 @@ def dashboard_routes(container: Any, sessions: DashboardSessions) -> list[Any]:
                 "candidates": [memory for memory in serialized if memory["status"] == "candidate"],
                 "status": status,
                 "services": _services(container, status),
-                "activity": _activity(container, all_memories),
+                "activity": _activity(container, all_memories, selected),
                 "access": container.access.dashboard_state()
                 if container.access is not None
                 else {"requests": [], "grants": [], "events": []},

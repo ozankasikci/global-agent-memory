@@ -332,7 +332,15 @@ class VaultRepository:
             stream.flush()
             os.fsync(stream.fileno())
         current.path.unlink()
-        self._audit("memory_hard_deleted", memory_id, current.path, now, tombstone=True)
+        self._audit(
+            "memory_hard_deleted",
+            memory_id,
+            current.path,
+            now,
+            tombstone=True,
+            project=current.metadata.project,
+            scope=current.metadata.scope.value,
+        )
         return HardDeleteResult(memory_id=memory_id, relative_path=current.relative_path)
 
     def _atomic_write(self, destination: Path, text: str) -> None:
@@ -355,6 +363,14 @@ class VaultRepository:
         at: datetime,
         **safe_details: Any,
     ) -> None:
+        if path.is_file():
+            try:
+                metadata = parse_note(path.read_text()).metadata
+            except (OSError, GlobalMemoryError):
+                pass
+            else:
+                safe_details.setdefault("project", metadata.project)
+                safe_details.setdefault("scope", metadata.scope.value)
         record = {
             "event_id": str(uuid.uuid4()),
             "event": event,

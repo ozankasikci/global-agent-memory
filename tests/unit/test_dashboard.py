@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -40,6 +41,7 @@ def test_dashboard_launch_tickets_are_single_use_and_sessions_expire() -> None:
 async def test_dashboard_routes_require_session_and_mutate_through_memory_service(tmp_path: Path) -> None:
     container = build_container(tmp_path / "vault", tmp_path / "state")
     container.projects.add(ProjectDraft(name="Alpha"))
+    container.projects.add(ProjectDraft(name="Beta"))
     candidate = container.memory.remember(
         MemoryDraft(
             title="Use durable IDs",
@@ -49,6 +51,36 @@ async def test_dashboard_routes_require_session_and_mutate_through_memory_servic
             project="Alpha",
             tags=["requests"],
         )
+    )
+    other_candidate = container.memory.remember(
+        MemoryDraft(
+            title="Beta-only workflow",
+            content="# Summary\n\nThis activity belongs only to Beta.",
+            type="convention",
+            scope="project",
+            project="Beta",
+            tags=["beta"],
+        )
+    )
+    shared_candidate = container.memory.remember(
+        MemoryDraft(
+            title="Organization-wide workflow",
+            content="# Summary\n\nThis is shared memory, not Alpha project activity.",
+            type="convention",
+            scope="organization",
+            tags=["shared"],
+        )
+    )
+    rejected_other = container.memory.reject(
+        other_candidate.metadata.id,
+        other_candidate.version,
+        reason="Verification cleanup",
+    )
+    container.memory.archive(
+        rejected_other.metadata.id,
+        rejected_other.version,
+        reason="Verification cleanup",
+        hard_delete=True,
     )
     sessions = DashboardSessions("http://127.0.0.1:8765")
     app = Starlette(routes=dashboard_routes(container, sessions))
@@ -67,9 +99,15 @@ async def test_dashboard_routes_require_session_and_mutate_through_memory_servic
         assert bootstrap.status_code == 200
         data = bootstrap.json()["data"]
         assert data["selected_project"] == "Alpha"
-        assert data["project_stats"]["Alpha"]["candidates"] == 1
-        assert data["candidates"][0]["id"] == candidate.metadata.id
-        assert data["candidates"][0]["evidence"] == "Verified in tests."
+        assert data["project_stats"]["Alpha"]["candidates"] == 2
+        alpha_candidate = next(item for item in data["candidates"] if item["id"] == candidate.metadata.id)
+        assert alpha_candidate["evidence"] == "Verified in tests."
+        assert any(item["target"] == "Use durable IDs" for item in data["activity"])
+        assert all(item["target"] != other_candidate.metadata.id for item in data["activity"])
+        assert all(item["target"] != shared_candidate.metadata.title for item in data["activity"])
+        audit_events = [json.loads(line) for line in container.repository.audit_path.read_text().splitlines()]
+        deleted_event = next(item for item in audit_events if item["event"] == "memory_hard_deleted")
+        assert deleted_event["details"]["project"] == "Beta"
 
         forbidden = await client.post(
             f"/ui/api/memories/{candidate.metadata.id}/approve",
