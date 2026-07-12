@@ -1,0 +1,4 @@
+interface:
+  display_name: "Global Agent Memory"
+  short_description: "Retrieve and curate durable project memory"
+  default_prompt: "Use $global-memory to retrieve relevant project context before starting this task."
