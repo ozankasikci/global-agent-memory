@@ -1,0 +1,84 @@
+# Operations
+
+## Install and initialize
+
+Install from a wheel or package index into an isolated Python 3.12+ environment, then initialize an absolute Vault:
+
+```shell
+global-memory init --vault "$HOME/Documents/Global Agent Memory"
+global-memory config validate
+global-memory doctor
+```
+
+Initialization is idempotent. It preserves existing README, templates, dashboards, and configuration, and creates the bearer token with user-only permissions.
+
+## Run the service
+
+For an interactive foreground process:
+
+```shell
+global-memory serve
+```
+
+For explicit managed-process control:
+
+```shell
+global-memory daemon start
+global-memory daemon status
+global-memory daemon stop
+```
+
+Install an auto-start file at the native per-user location:
+
+```shell
+global-memory daemon install-service --kind launchd
+# Linux alternative:
+global-memory daemon install-service --kind systemd
+```
+
+The command refuses to replace an unmanaged service file, then loads/enables the per-user service immediately. The launchd plist uses `RunAtLoad`/`KeepAlive`; the systemd user unit uses `WantedBy=default.target`. Use `--no-enable` when you only want to inspect the generated file. `uninstall-service` stops/disables the service before removing its managed file; use `--no-disable` only when native service state is managed separately.
+
+## Runtime commands
+
+`status`, `dashboard`, `search`, `context`, `remember`, `get`, `approve`, `reject`, `update`, `supersede`, `archive`, `reindex`, and every `project` command call the shared daemon through MCP. Use `--endpoint`, `--token-file`, and `--config` to override platform defaults. Use `--show-completion` or `--install-completion` for shell completion.
+
+## Review dashboard
+
+```shell
+global-memory dashboard
+# Print a single-use URL without opening a browser:
+global-memory dashboard --no-open
+```
+
+The dashboard provides project overview, one-at-a-time candidate review and editing, duplicate/conflict comparison, memory search, access-request approval, temporary grant revocation, audited sealed-memory unlocks, project switching, system status, reindexing, timestamped Vault backups, and links to canonical Markdown. The launch URL expires after 60 seconds, can be exchanged only once, and creates a local HttpOnly session. Do not share the URL. The UI is served only by the localhost daemon and its private JSON endpoints are not a public integration contract.
+
+Visibility is fail-closed across MCP tools and resources:
+
+- **Standard** memories participate in normal retrieval.
+- **Protected** memories may produce only the neutral warning `protected_memory_may_be_relevant`. An agent calls `memory_access_request`, waits while the owner reviews it in **Access**, polls `memory_access_status`, and passes the returned `access_grant` to the supported read/edit/manage tool.
+- **Sealed** memories are not indexed by body and cannot be retrieved by agents. The owner may unlock one dashboard view; that access is recorded.
+
+Access grants are purpose-, project-, permission-, memory-, and duration-scoped. The owner selects the exact protected matches, may downgrade but never elevate the requested permission, and may shorten but never extend the requested duration. A protected memory may set a Read/Edit/Manage maximum, restrict eligible projects, and force approval for every retrieval. One-retrieval grants are consumed on first use; other grants can be revoked immediately. Tightening a memory policy revokes incompatible active grants. Agents can request and poll, but cannot approve, deny, or revoke. Never store credentials, passwords, private keys, or API keys in memory, including sealed memory.
+
+## Diagnose and recover
+
+```shell
+global-memory doctor
+global-memory doctor --json
+global-memory reindex --full
+```
+
+Doctor checks configuration, Vault permissions/folders, Markdown validity and duplicate IDs, SQLite integrity/migrations/WAL/jobs, project resolution, vector and embedding state, daemon readiness, direct MCP discovery, stdio proxy calls, contract hashes, and client integration state. Provider and daemon outages are warnings when canonical Markdown remains healthy.
+
+Generated SQLite/vector state can be deleted while the daemon is stopped. Startup reconciliation rebuilds it from Markdown and quarantines corrupt databases automatically.
+
+## Backup, restore, upgrade, and rollback
+
+```shell
+global-memory backup "$HOME/Backups/global-memory.zip"
+global-memory restore "$HOME/Backups/global-memory.zip" --vault "$HOME/Documents/Restored Memory"
+global-memory upgrade
+global-memory rollback 0.1.0
+```
+
+Backups contain the canonical Vault and a SHA-256 manifest, never the external token or generated indexes. Restore accepts only safe archive paths and an empty destination. Package upgrade/rollback uses pip from the active Python interpreter, or `uv pip --python` when the environment intentionally has no pip module. The Vault format and Markdown data are not removed by package changes.
