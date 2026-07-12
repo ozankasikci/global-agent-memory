@@ -1,0 +1,65 @@
+{
+  "contract_version": 1,
+  "description": "Reconcile generated indexes from validated Vault-relative paths or rebuild all disposable state.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "full": {
+        "default": false,
+        "type": "boolean"
+      },
+      "paths": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
+      },
+      "request_id": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "request_id"
+    ],
+    "type": "object"
+  },
+  "name": "memory_reindex",
+  "outputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "contract_version": {
+        "const": 1
+      },
+      "data": {},
+      "diagnostics": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "ok": {
+        "const": true
+      },
+      "warnings": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "contract_version",
+      "ok",
+      "data",
+      "warnings",
+      "diagnostics"
+    ],
+    "type": "object"
+  }
+}
