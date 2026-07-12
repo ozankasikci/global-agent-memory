@@ -17,9 +17,9 @@ dashboard lets a human approve, edit, protect, or remove what agents remember.
 
 **One Vault. Multiple agents. Human-controlled memory.**
 
-[Quick start](#quick-start) · [How it works](#how-it-works) ·
-[Security](#security-model) · [MCP contract](#mcp-interface) ·
-[Documentation](#documentation)
+[Quick start](#quick-start) · [Obsidian Vault](#obsidian-vault) ·
+[Dashboard](#dashboard) · [How it works](#how-it-works) ·
+[Security](#security-model) · [MCP contract](#mcp-interface) · [Documentation](#documentation)
 
 ## Why Global Agent Memory?
 
@@ -59,6 +59,21 @@ hard-delete them.
   rules are versioned in the repository.
 - **Local security boundary** — the daemon binds to `127.0.0.1` and requires a generated
   bearer token stored outside the Vault.
+
+## Three surfaces, one memory system
+
+Global Agent Memory is more than an MCP server. Agents, owners, and knowledge workers
+use the same canonical memories through three purpose-built surfaces:
+
+| Surface | Designed for | What it provides |
+| --- | --- | --- |
+| **MCP** | Claude Code, Codex, and other agents | Project-aware context, search, candidate creation, safe updates, lifecycle actions, and permission requests through a frozen V1 contract |
+| **Obsidian Vault** | Reading, writing, linking, and long-term knowledge ownership | Portable Markdown and YAML, templates, native Bases views, project overview hubs, wikilinks, backlinks, graph navigation, and direct-edit synchronization |
+| **Local dashboard** | Fast owner review and administration | Candidate approval and editing, conflict comparison, visibility classification, protected-access decisions, search, projects, activity, backups, and system health |
+
+The Vault is the durable source of truth. The dashboard is a complementary control
+plane, and the MCP interface is the safe automation layer used by agents. You can use
+Obsidian, the dashboard, or both without creating separate copies of your memory.
 
 ## Quick start
 
@@ -173,6 +188,28 @@ The agent creates a candidate. Nothing becomes active until it is approved.
 
 The shared integration skill teaches supported agents when to retrieve, propose, update,
 and avoid duplicating memory.
+
+## Obsidian Vault
+
+The configured Obsidian Vault is the human-readable, durable source of truth—not an
+export of an opaque database. Every managed memory is a normal Markdown file with YAML
+properties, a stable memory ID, lifecycle metadata, and project-aware links.
+
+Initialization adds an Obsidian workspace without replacing your existing files:
+
+- templates for decisions, facts, solutions, conventions, preferences, entities,
+  references, session summaries, and project overviews;
+- native Bases views for the candidate review queue, active knowledge, recent updates,
+  decisions by project, verified solutions, and lifecycle history;
+- project overview hubs that embed project memories and remain stable as notes move
+  through candidate, active, rejected, superseded, or archived folders;
+- wikilinks and reciprocal supersession links for backlinks and graph navigation;
+- watcher synchronization, so ordinary content and descriptive-property edits made in
+  Obsidian become searchable without restarting the service.
+
+Obsidian is optional: the same Markdown remains readable and editable with any text
+editor. Lifecycle and access-policy changes should still go through the dashboard, MCP,
+or CLI so validation, optimistic concurrency, and audit records remain intact.
 
 ## Dashboard
 
