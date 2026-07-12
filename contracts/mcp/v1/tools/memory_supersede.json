@@ -1,0 +1,92 @@
+{
+  "contract_version": 1,
+  "description": "Supersede an existing memory with an identified or candidate replacement while retaining reciprocal history.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "allOf": [
+      {
+        "oneOf": [
+          {
+            "required": [
+              "replacement_id"
+            ]
+          },
+          {
+            "required": [
+              "replacement"
+            ]
+          }
+        ]
+      }
+    ],
+    "properties": {
+      "access_grant": {
+        "description": "Owner-approved temporary protected-memory grant.",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "old_id": {
+        "type": "string"
+      },
+      "reason": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "replacement": {
+        "type": "object"
+      },
+      "replacement_id": {
+        "type": "string"
+      },
+      "request_id": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "request_id",
+      "old_id",
+      "reason"
+    ],
+    "type": "object"
+  },
+  "name": "memory_supersede",
+  "outputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "contract_version": {
+        "const": 1
+      },
+      "data": {},
+      "diagnostics": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "ok": {
+        "const": true
+      },
+      "warnings": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "contract_version",
+      "ok",
+      "data",
+      "warnings",
+      "diagnostics"
+    ],
+    "type": "object"
+  }
+}
