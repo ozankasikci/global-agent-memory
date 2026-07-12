@@ -1,0 +1,76 @@
+{
+  "contract_version": 1,
+  "description": "Reject and retain a candidate in a deterministic audit location without hard deleting its evidence.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "access_grant": {
+        "description": "Owner-approved temporary protected-memory grant.",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "expected_updated_at": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "id": {
+        "type": "string"
+      },
+      "reason": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "request_id": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "verbose": {
+        "default": false,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "request_id",
+      "id",
+      "reason"
+    ],
+    "type": "object"
+  },
+  "name": "memory_reject",
+  "outputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "contract_version": {
+        "const": 1
+      },
+      "data": {},
+      "diagnostics": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "ok": {
+        "const": true
+      },
+      "warnings": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "contract_version",
+      "ok",
+      "data",
+      "warnings",
+      "diagnostics"
+    ],
+    "type": "object"
+  }
+}
