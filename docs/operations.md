@@ -112,7 +112,7 @@ installation, restart Claude Code or Codex once so it launches the updated
 `Transport closed`, verify both layers:
 
 ```shell
-global-memory daemon status
+global-memory status
 global-memory doctor
 global-memory integrations verify all
 ```
