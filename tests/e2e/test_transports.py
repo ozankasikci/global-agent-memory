@@ -116,6 +116,9 @@ async def http_session(endpoint: str, token: str):
     session = ClientSession(streams[0], streams[1])
     await session.__aenter__()
     await session.initialize()
+    # The shared daemon owns all durable state. It must not issue an expiring
+    # HTTP session ID that an hours-long stdio proxy can later reuse.
+    assert streams[2]() is None
     return client, transport, session
 
 

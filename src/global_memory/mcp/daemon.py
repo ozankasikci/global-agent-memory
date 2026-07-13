@@ -189,13 +189,15 @@ def create_http_app(
     manager = StreamableHTTPSessionManager(
         mcp_server,
         json_response=True,
-        stateless=False,
+        # GAM keeps durable state in the shared container, not in an MCP client
+        # session. Stateless requests prevent long-lived stdio proxies from
+        # retaining an expired HTTP session ID between agent tasks.
+        stateless=True,
         security_settings=TransportSecuritySettings(
             enable_dns_rebinding_protection=True,
             allowed_hosts=allowed_hosts,
             allowed_origins=allowed_origins,
         ),
-        session_idle_timeout=1800,
     )
 
     async def live(_request: Any) -> JSONResponse:
