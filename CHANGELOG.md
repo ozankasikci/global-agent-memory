@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## Unreleased
 
+## 0.1.4 - 2026-07-13
+
 ### Fixed
 
 - Use stateless Streamable HTTP requests so long-lived Claude Code and Codex stdio

@@ -14,4 +14,4 @@ def test_installed_module_runs_as_a_subprocess() -> None:
         capture_output=True,
         text=True,
     )
-    assert result.stdout.strip() == "global-memory 0.1.3"
+    assert result.stdout.strip() == "global-memory 0.1.4"
