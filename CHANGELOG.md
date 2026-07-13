@@ -4,6 +4,12 @@ All notable changes are recorded here.
 
 ## Unreleased
 
+### Fixed
+
+- Use stateless Streamable HTTP requests so long-lived Claude Code and Codex stdio
+  bridges cannot retain an expired MCP session and fail later with
+  `32600: Session terminated`.
+
 ## 0.1.3 - 2026-07-13
 
 ### Added

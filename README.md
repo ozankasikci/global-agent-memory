@@ -308,7 +308,9 @@ flowchart LR
 The daemon is the single owner of the Vault watcher, generated indexes, embedding queue,
 and MCP transport. Streamable HTTP clients connect directly on localhost; stdio-only
 clients launch the thin `global-memory-mcp` proxy. Both paths expose the same MCP V1
-contract.
+contract. Requests are stateless because durable memory belongs to the shared daemon
+rather than to an expiring client session, which keeps long-lived agent bridges reliable
+across idle periods.
 
 The dependency direction is:
 

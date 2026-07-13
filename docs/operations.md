@@ -103,6 +103,24 @@ Doctor checks configuration, Vault permissions/folders, Markdown validity and du
 
 Generated SQLite/vector state can be deleted while the daemon is stopped. Startup reconciliation rebuilds it from Markdown and quarantines corrupt databases automatically.
 
+### Recover from a closed MCP transport
+
+Current GAM daemons use stateless Streamable HTTP requests, so an idle coding-agent
+bridge does not retain an expiring server session. After upgrading from an older
+installation, restart Claude Code or Codex once so it launches the updated
+`global-memory-mcp` bridge. If a client still reports `32600: Session terminated` or
+`Transport closed`, verify both layers:
+
+```shell
+global-memory daemon status
+global-memory doctor
+global-memory integrations verify all
+```
+
+Do not interpret a transport failure as an empty memory result. Reconnect first, then
+repeat `memory_search`; only a successful search response is authoritative about
+whether a matching memory exists.
+
 ## Backup, restore, upgrade, and rollback
 
 ```shell
