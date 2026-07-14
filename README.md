@@ -8,6 +8,7 @@
 > MCP-compatible agents.
 
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![PyPI](https://img.shields.io/pypi/v/global-memory-mcp?style=flat-square&logo=pypi&logoColor=white)](https://pypi.org/project/global-memory-mcp/)
 [![MCP contract](https://img.shields.io/badge/MCP-contract%20v1-5A67D8?style=flat-square)](docs/mcp-contract-v1.md)
 [![Local first](https://img.shields.io/badge/storage-local--first-2F855A?style=flat-square)](#security-model)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](pyproject.toml)
@@ -126,10 +127,12 @@ dashboard, MCP registrations, and agent skills together.
 ### 1. Install
 
 ```shell
-uv tool install git+https://github.com/ozankasikci/global-agent-memory.git
+uv tool install global-memory-mcp
 ```
 
-For a local checkout, use `uv tool install .` instead.
+To install the latest unreleased source, use
+`uv tool install git+https://github.com/ozankasikci/global-agent-memory.git`. For a
+local checkout, use `uv tool install .`.
 
 ### 2. Run guided setup
 
@@ -467,8 +470,9 @@ intentionally introduced.
 
 ## Project status
 
-Global Agent Memory is under active V1 development and is currently intended to be
-installed from source. The package version is `0.1.4`; the MCP contract version is `v1`.
+Global Agent Memory is under active V1 development and is published on PyPI as
+[`global-memory-mcp`](https://pypi.org/project/global-memory-mcp/). The package version
+is `0.1.4`; the MCP contract version is `v1`.
 
 The product name is **Global Agent Memory**. The technical identifiers `global-memory`,
 `global-memory-mcp`, `global-memoryd`, `global_memory`, and `product: global-memory`

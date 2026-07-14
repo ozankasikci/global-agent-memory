@@ -4,6 +4,11 @@ All notable changes are recorded here.
 
 ## Unreleased
 
+### Changed
+
+- Publish the verified package to PyPI and make `uv tool install global-memory-mcp`
+  the primary installation path.
+
 ## 0.1.4 - 2026-07-13
 
 ### Fixed

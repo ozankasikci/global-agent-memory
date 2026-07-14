@@ -5,9 +5,12 @@
 Install into an isolated Python 3.12+ environment, then run the guided setup:
 
 ```shell
-uv tool install git+https://github.com/ozankasikci/global-agent-memory.git
+uv tool install global-memory-mcp
 global-memory setup
 ```
+
+Use `uv tool install git+https://github.com/ozankasikci/global-agent-memory.git` only
+when testing the latest unreleased source.
 
 `setup` displays one plan and asks once before it changes anything. By default it uses
 `~/Documents/Global Agent Memory`, installs the native launchd or systemd user service,
