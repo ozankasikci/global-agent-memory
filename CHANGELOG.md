@@ -8,6 +8,7 @@ All notable changes are recorded here.
 
 - Publish the verified package to PyPI and make `uv tool install global-memory-mcp`
   the primary installation path.
+- Add official MCP Registry metadata for the PyPI-distributed stdio server.
 
 ## 0.1.4 - 2026-07-13
 
