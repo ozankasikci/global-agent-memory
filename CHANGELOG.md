@@ -4,11 +4,20 @@ All notable changes are recorded here.
 
 ## Unreleased
 
+## 0.1.5 - 2026-07-15
+
 ### Changed
 
 - Publish the verified package to PyPI and make `uv tool install global-memory-mcp`
   the primary installation path.
 - Add official MCP Registry metadata for the PyPI-distributed stdio server.
+
+### Fixed
+
+- Resolve the compiled dashboard bundle from the package root after the dashboard
+  backend was modularized, restoring `/ui/` for installed distributions.
+- Verify dashboard index serving in source tests and asset resolution from a freshly
+  installed wheel.
 
 ## 0.1.4 - 2026-07-13
 
