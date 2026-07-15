@@ -75,10 +75,11 @@ class DashboardSessions:
 
 
 def _dashboard_root() -> Path:
-    packaged = Path(__file__).resolve().parent / "_dashboard"
+    module_path = Path(__file__).resolve()
+    packaged = module_path.parents[1] / "_dashboard"
     if packaged.is_dir():
         return packaged
-    return Path(__file__).resolve().parents[2] / "dashboard" / "dist"
+    return module_path.parents[3] / "dashboard" / "dist"
 
 
 def _extract_section(body: str, heading: str) -> str | None:

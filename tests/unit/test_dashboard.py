@@ -10,10 +10,19 @@ import httpx
 import pytest
 from starlette.applications import Starlette
 
+import global_memory
 from global_memory.dashboard import DashboardSessions, dashboard_routes
+from global_memory.dashboard.routes import _dashboard_root
 from global_memory.domain.models import MemoryDraft
 from global_memory.mcp.server import build_container
 from global_memory.projects.models import ProjectDraft
+
+
+def test_dashboard_root_resolves_packaged_assets() -> None:
+    expected = Path(global_memory.__file__).resolve().parent / "_dashboard"
+
+    assert _dashboard_root() == expected
+    assert (_dashboard_root() / "index.html").is_file()
 
 
 def test_dashboard_launch_tickets_are_single_use_and_sessions_expire() -> None:
@@ -87,6 +96,10 @@ async def test_dashboard_routes_require_session_and_mutate_through_memory_servic
 
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        index = await client.get("/ui/")
+        assert index.status_code == 200
+        assert "<html" in index.text
+
         unauthorized = await client.get("/ui/api/bootstrap")
         assert unauthorized.status_code == 401
 

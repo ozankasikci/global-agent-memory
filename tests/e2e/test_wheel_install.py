@@ -23,6 +23,8 @@ def test_fresh_wheel_contains_contract_and_console_entry_points(tmp_path: Path) 
             "assert len(load_discovery()['tools']) == 17; "
             "from pathlib import Path; import global_memory; "
             "assert (Path(global_memory.__file__).parent / '_dashboard/index.html').is_file(); "
+            "from global_memory.dashboard.routes import _dashboard_root; "
+            "assert (_dashboard_root() / 'index.html').is_file(); "
             "from global_memory.integrations.manager import integration_root; "
             "assert (integration_root() / 'skills/global-memory/SKILL.md').is_file(); "
             "assert (integration_root() / 'skills/gam-context/SKILL.md').is_file(); "
