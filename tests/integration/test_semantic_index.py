@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import threading
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -9,6 +11,7 @@ import pytest
 from global_memory.application.memory_service import MemoryService
 from global_memory.domain.models import MemoryDraft
 from global_memory.embeddings.fake import FakeEmbeddingProvider
+from global_memory.errors import ErrorCode, GlobalMemoryError
 from global_memory.index.database import IndexDatabase
 from global_memory.index.embedding_indexer import EmbeddingIndexer
 from global_memory.index.indexer import Indexer
@@ -21,6 +24,27 @@ from global_memory.vault.repository import VaultRepository
 
 pytestmark = pytest.mark.integration
 NOW = datetime(2026, 7, 11, 12, 0, tzinfo=UTC)
+
+
+class SlowUnavailableProvider:
+    provider = "slow-offline"
+    model = "slow-offline"
+    dimension: int | None = 8
+
+    def __init__(self, delay: float = 0.2) -> None:
+        self.delay = delay
+        self.started = threading.Event()
+        self.finished = threading.Event()
+
+    def embed(self, _texts: list[str]) -> list[list[float]]:
+        self.started.set()
+        time.sleep(self.delay)
+        self.finished.set()
+        raise GlobalMemoryError(
+            ErrorCode.EMBEDDING_PROVIDER_UNAVAILABLE,
+            "The test embedding provider is offline.",
+            retryable=True,
+        )
 
 
 def setup_index(tmp_path: Path) -> tuple[IndexDatabase, Indexer]:
@@ -186,6 +210,62 @@ def test_shared_container_wires_semantics_and_degrades_when_provider_is_offline(
     assert tuple(job) == ("failed", 5)
     assert status["pending_embedding_jobs"] == 0
     assert status["keyword_only"] is True
+
+
+@pytest.mark.asyncio
+async def test_async_hybrid_search_does_not_block_the_daemon_loop_on_provider_io(tmp_path: Path) -> None:
+    setup_index(tmp_path)
+    provider = SlowUnavailableProvider()
+    container = build_container(
+        tmp_path / "vault",
+        tmp_path / "data",
+        transport="test",
+        embedding_provider=provider,
+        eager_embedding_sync=False,
+    )
+    container.projects.add(ProjectDraft(name="Factory"))
+
+    search = asyncio.create_task(
+        container.search.search_async(
+            SearchRequest(query="furnace", project="Factory", mode="hybrid", include_candidates=True)
+        )
+    )
+    assert await asyncio.to_thread(provider.started.wait, 1)
+    started = asyncio.get_running_loop().time()
+    await asyncio.sleep(0.01)
+    assert asyncio.get_running_loop().time() - started < 0.1
+    assert not search.done()
+
+    page = await search
+    assert page.results
+    assert page.mode_used == "keyword"
+    assert "semantic_unavailable_keyword_fallback" in page.warnings
+
+
+@pytest.mark.asyncio
+async def test_daemon_embedding_retry_does_not_block_the_event_loop(tmp_path: Path) -> None:
+    setup_index(tmp_path)
+    provider = SlowUnavailableProvider()
+    container = build_container(
+        tmp_path / "vault",
+        tmp_path / "data",
+        transport="test",
+        embedding_provider=provider,
+        eager_embedding_sync=False,
+    )
+
+    task = asyncio.create_task(retry_pending_embeddings(container, provider, batch_size=8, interval_seconds=60))
+    try:
+        assert await asyncio.to_thread(provider.started.wait, 1)
+        started = asyncio.get_running_loop().time()
+        await asyncio.sleep(0.01)
+        assert asyncio.get_running_loop().time() - started < 0.1
+        assert not provider.finished.is_set()
+    finally:
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        await asyncio.to_thread(provider.finished.wait, 1)
 
 
 @pytest.mark.asyncio

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 from dataclasses import dataclass, field
@@ -253,7 +254,12 @@ class SearchService:
         ]
 
     def _collect(
-        self, request: SearchRequest, project: str | None
+        self,
+        request: SearchRequest,
+        project: str | None,
+        *,
+        semantic_vector: list[float] | None = None,
+        semantic_error: GlobalMemoryError | None = None,
     ) -> tuple[dict[str, _Candidate], list[str], list[str], list[str], str]:
         candidates: dict[str, _Candidate] = {}
         keyword_order: list[str] = []
@@ -314,13 +320,19 @@ class SearchService:
             return candidates, [], [], warnings, mode_used
         if request.mode in {"semantic", "hybrid"}:
             try:
+                if semantic_error is not None:
+                    raise semantic_error
                 if self.embedding_provider is None:
                     raise GlobalMemoryError(
                         ErrorCode.EMBEDDING_PROVIDER_UNAVAILABLE, "No embedding provider is configured."
                     )
                 if self.vectors is None or not self.vectors.available:
                     raise GlobalMemoryError(ErrorCode.VECTOR_INDEX_UNAVAILABLE, "No vector index is available.")
-                vector = self.embedding_provider.embed([request.query])[0]
+                vector = (
+                    semantic_vector
+                    if semantic_vector is not None
+                    else self.embedding_provider.embed([request.query])[0]
+                )
                 for match in self.vectors.search(
                     self.embedding_provider.provider,
                     self.embedding_provider.model,
@@ -444,13 +456,24 @@ class SearchService:
         results.sort(key=lambda result: result.score, reverse=True)
         return results
 
-    def search(self, request: SearchRequest) -> SearchPage:
+    def _search(
+        self,
+        request: SearchRequest,
+        *,
+        semantic_vector: list[float] | None = None,
+        semantic_error: GlobalMemoryError | None = None,
+    ) -> SearchPage:
         project, project_source, project_explanation = self._resolve_project(request)
         snapshot = self._snapshot()
         fingerprint_data = request.model_dump(mode="json", exclude={"cursor", "limit"})
         fingerprint = hashlib.sha256(json.dumps(fingerprint_data, sort_keys=True).encode()).hexdigest()[:12]
         cursor_snapshot = f"{snapshot}:{fingerprint}"
-        candidates, keyword_order, semantic_order, warnings, mode_used = self._collect(request, project)
+        candidates, keyword_order, semantic_order, warnings, mode_used = self._collect(
+            request,
+            project,
+            semantic_vector=semantic_vector,
+            semantic_error=semantic_error,
+        )
         results = self._results(candidates, keyword_order, semantic_order, project)
         if request.cursor:
             key = decode_cursor(request.cursor, expected_snapshot=cursor_snapshot)
@@ -480,3 +503,22 @@ class SearchService:
             project_source=project_source,
             project_explanation=project_explanation,
         )
+
+    def search(self, request: SearchRequest) -> SearchPage:
+        """Search synchronously for direct and offline callers."""
+        return self._search(request)
+
+    async def search_async(self, request: SearchRequest) -> SearchPage:
+        """Search without blocking the daemon event loop on embedding I/O."""
+        if (
+            request.mode not in {"hybrid", "semantic"}
+            or self.embedding_provider is None
+            or self.vectors is None
+            or not self.vectors.available
+        ):
+            return self._search(request)
+        try:
+            vector = (await asyncio.to_thread(self.embedding_provider.embed, [request.query]))[0]
+        except GlobalMemoryError as exc:
+            return self._search(request, semantic_error=exc)
+        return self._search(request, semantic_vector=vector)

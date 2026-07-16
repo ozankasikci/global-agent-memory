@@ -7,7 +7,6 @@ import asyncio
 import secrets
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -24,6 +23,9 @@ from global_memory.embeddings.base import EmbeddingProvider
 from global_memory.embeddings.fake import FakeEmbeddingProvider
 from global_memory.embeddings.ollama import OllamaEmbeddingProvider
 from global_memory.errors import ErrorCode, GlobalMemoryError
+from global_memory.index.database import IndexDatabase
+from global_memory.index.embedding_indexer import EmbeddingIndexer
+from global_memory.index.vectors import SqliteVecStore
 from global_memory.index.watcher import VaultWatcher
 from global_memory.logging import configure_logging, get_logger
 
@@ -35,6 +37,23 @@ DEFAULT_PORT = 8765
 DEFAULT_MAX_REQUEST_BYTES = 1_048_576
 DEFAULT_MAX_CONNECTIONS = 64
 DEFAULT_EMBEDDING_RETRY_INTERVAL = 1.0
+
+
+def _sync_embeddings_isolated(
+    database_path: Path,
+    provider: EmbeddingProvider,
+    batch_size: int,
+) -> None:
+    """Run provider I/O and embedding writes on a worker-owned SQLite connection."""
+    database = IndexDatabase(database_path)
+    try:
+        EmbeddingIndexer(database, SqliteVecStore(database)).sync(
+            provider,
+            batch_size=batch_size,
+            stop_after_failure=True,
+        )
+    finally:
+        database.close()
 
 
 def _error_response(error: GlobalMemoryError, status_code: int) -> JSONResponse:
@@ -135,21 +154,19 @@ async def retry_pending_embeddings(
     batch_size: int,
     interval_seconds: float = DEFAULT_EMBEDDING_RETRY_INTERVAL,
 ) -> None:
-    """Retry due semantic work while the daemon is otherwise idle."""
+    """Retry semantic work without blocking MCP or health requests."""
     logger = get_logger()
     while True:
-        await asyncio.sleep(interval_seconds)
-        due = container.database.connection.execute(
-            "SELECT 1 FROM embedding_jobs WHERE status='pending' "
-            "AND (next_attempt_at IS NULL OR next_attempt_at <= ?) LIMIT 1",
-            (datetime.now(UTC).isoformat(),),
-        ).fetchone()
-        if due is None:
-            continue
         try:
-            container.embedding_indexer.sync(provider, batch_size=batch_size)
+            await asyncio.to_thread(
+                _sync_embeddings_isolated,
+                container.database.path,
+                provider,
+                batch_size,
+            )
         except Exception:
             logger.exception("embedding_retry_cycle_failed")
+        await asyncio.sleep(interval_seconds)
 
 
 def create_http_app(
@@ -174,6 +191,7 @@ def create_http_app(
         transport="streamable-http",
         embedding_provider=embedding_provider,
         embedding_batch_size=embedding_batch_size,
+        eager_embedding_sync=False,
     )
     dashboard_sessions = DashboardSessions(f"http://{host}:{port}")
     container.dashboard_launcher = dashboard_sessions.launch

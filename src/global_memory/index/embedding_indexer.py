@@ -67,7 +67,13 @@ class EmbeddingIndexer:
                 ),
             )
 
-    def sync(self, provider: EmbeddingProvider, *, batch_size: int = 32) -> EmbeddingReport:
+    def sync(
+        self,
+        provider: EmbeddingProvider,
+        *,
+        batch_size: int = 32,
+        stop_after_failure: bool = False,
+    ) -> EmbeddingReport:
         chunks = self.database.connection.execute(
             "SELECT c.id, c.content, c.content_hash FROM chunks c JOIN documents d ON d.id=c.document_id "
             "WHERE d.deleted_at IS NULL ORDER BY c.id"
@@ -108,6 +114,8 @@ class EmbeddingIndexer:
                 for row in batch:
                     self._pending(row["id"], provider, row["content_hash"], type(exc).__name__)
                     failed += 1
+                if stop_after_failure:
+                    break
         return EmbeddingReport(
             embedded=embedded,
             skipped=skipped,

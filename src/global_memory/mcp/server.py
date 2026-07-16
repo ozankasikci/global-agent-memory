@@ -134,6 +134,7 @@ def build_container(
     transport: str = "direct",
     embedding_provider: EmbeddingProvider | None = None,
     embedding_batch_size: int = 32,
+    eager_embedding_sync: bool = True,
 ) -> ServiceContainer:
     vault_path.mkdir(parents=True, exist_ok=True)
     state_path.mkdir(parents=True, exist_ok=True)
@@ -160,18 +161,18 @@ def build_container(
             path = Path(relative)
             indexer.index_path(path)
             reconcile_access(path)
-        if embedding_provider is not None:
+        if embedding_provider is not None and eager_embedding_sync:
             embedding_indexer.sync(embedding_provider, batch_size=embedding_batch_size)
 
     def after_index(path: Path) -> None:
         reconcile_access(path)
-        if embedding_provider is not None:
+        if embedding_provider is not None and eager_embedding_sync:
             embedding_indexer.sync(embedding_provider, batch_size=embedding_batch_size)
 
     index_jobs.on_indexed = after_index
     index_jobs.reconcile()
     index_jobs.process_due()
-    if embedding_provider is not None:
+    if embedding_provider is not None and eager_embedding_sync:
         embedding_indexer.sync(embedding_provider, batch_size=embedding_batch_size)
     if opened.recovered_from is not None:
         database.connection.execute(
@@ -538,6 +539,23 @@ def _dispatch(container: ServiceContainer, name: str, arguments: dict[str, Any])
     raise GlobalMemoryError(ErrorCode.NOTE_INVALID, "Unknown MCP tool.", details={"tool": name})
 
 
+async def _dispatch_async(
+    container: ServiceContainer,
+    name: str,
+    arguments: dict[str, Any],
+) -> tuple[Any, list[str]]:
+    """Dispatch daemon retrieval without blocking its event loop on embeddings."""
+    if name == "memory_search":
+        arguments.pop("verbose", None)
+        page = await container.search.search_async(SearchRequest.model_validate(arguments))
+        return _jsonable(page), list(page.warnings)
+    if name == "memory_context":
+        arguments.pop("verbose", None)
+        bundle = await container.context.pack_async(**arguments)
+        return _jsonable(bundle), list(bundle.warnings)
+    return _dispatch(container, name, arguments)
+
+
 def _resource(container: ServiceContainer, uri: str) -> Any:
     if uri == "memory://v1/status":
         return _status(container)
@@ -622,7 +640,7 @@ def create_mcp_server(container: ServiceContainer) -> Server[Any]:
                     details=details,
                     remediation="Correct the arguments using the discovered input schema.",
                 ) from exc
-            data, warnings = _dispatch(container, name, dict(arguments))
+            data, warnings = await _dispatch_async(container, name, dict(arguments))
             envelope = success(data, warnings=warnings)
             return types.CallToolResult(
                 content=[types.TextContent(type="text", text=json.dumps(envelope, ensure_ascii=False))],
