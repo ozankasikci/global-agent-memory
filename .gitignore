@@ -13,4 +13,5 @@ htmlcov/
 node_modules/
 .npm-cache/
 .tmp/
+.secrets/
 /design-qa.md

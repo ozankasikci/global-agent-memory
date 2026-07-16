@@ -5,6 +5,13 @@
 - MCP contract: `v1`
 - Status: **`v0.1.5` development release ready; a stable V1 release remains blocked on complete live client/UI acceptance.**
 
+## Local publishing credential
+
+On the maintainer's release machine, the project-scoped PyPI token is stored at
+`.secrets/pypi-token`. The entire `.secrets/` directory is Git-ignored. Keep the
+file mode at `0600`, never print its contents, and never copy the token into
+commits, logs, issues, release notes, or Global Agent Memory.
+
 ## Required product scenarios
 
 | Scenario | Evidence | Status |
