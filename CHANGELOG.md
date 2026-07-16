@@ -4,6 +4,23 @@ All notable changes are recorded here.
 
 ## Unreleased
 
+## 0.1.6 - 2026-07-16
+
+### Changed
+
+- Run semantic query embedding and background embedding reconciliation outside the
+  daemon event loop.
+- Give background embedding work a worker-owned SQLite connection and stop an
+  offline-provider cycle after its first failed batch.
+- Start the HTTP daemon without eager embedding synchronization so health, MCP,
+  and dashboard routes become available independently of Ollama.
+
+### Fixed
+
+- Keep health checks and MCP tools responsive while Ollama is offline or slow.
+- Make hybrid search and context retrieval fall back to keyword results instead
+  of leaving agent calls stuck behind embedding retries.
+
 ## 0.1.5 - 2026-07-15
 
 ### Changed

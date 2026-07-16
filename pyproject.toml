@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "global-memory-mcp"
-version = "0.1.5"
+version = "0.1.6"
 description = "Local-first, project-aware durable memory through a versioned MCP interface"
 readme = "README.md"
 requires-python = ">=3.12"

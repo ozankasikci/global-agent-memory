@@ -1,9 +1,9 @@
 # V1 release checklist
 
-- Date: 2026-07-15
-- Package: `0.1.5`
+- Date: 2026-07-16
+- Package: `0.1.6`
 - MCP contract: `v1`
-- Status: **`v0.1.5` development release ready; a stable V1 release remains blocked on complete live client/UI acceptance.**
+- Status: **`v0.1.6` development release ready; a stable V1 release remains blocked on complete live client/UI acceptance.**
 
 ## Local publishing credential
 
@@ -34,8 +34,8 @@ commits, logs, issues, release notes, or Global Agent Memory.
 | Gate | Evidence | Status |
 | --- | --- | --- |
 | Ruff + strict mypy | `make check` | Pass |
-| Unit / integration / contract / E2E | 78 / 57 / 19 / 13, plus 8 dashboard component tests | Pass |
-| Coverage | In-process target excludes subprocess-only adapters; final result 86.54% | Pass |
+| Unit / integration / contract / E2E | 79 / 59 / 19 / 13, plus 8 dashboard component tests | Pass |
+| Coverage | In-process target excludes subprocess-only adapters; final result 86.66% | Pass |
 | Performance | 10k-note suite, all four budgets pass | Pass |
 | Fresh install/upgrade/docs | Isolated wheel, console scripts, schema upgrade fixture, operations/client docs | Pass |
 | Linux/macOS, Python 3.12/3.14 | Full gate passed locally on macOS 3.12.11 and previously on 3.14.0rc3; no remote workflows are currently configured | Awaiting Linux/remote CI decision |
