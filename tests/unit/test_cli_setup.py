@@ -183,7 +183,7 @@ def test_setup_installs_and_waits_for_native_service(tmp_path: Path, monkeypatch
 
     result = CliRunner().invoke(
         cli.app,
-        ["setup", "--clients", "none", "--no-verify", "--no-open-dashboard", "--yes"],
+        ["setup", "--clients", "none", "--service", "--no-verify", "--no-open-dashboard", "--yes"],
     )
 
     assert result.exit_code == 0, result.output

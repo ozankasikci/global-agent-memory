@@ -1,4 +1,4 @@
-"""Protocol-pure stdio MCP proxy for the shared local HTTP daemon."""
+"""Hybrid stdio MCP bridge with a daemonless local fallback."""
 
 from __future__ import annotations
 
@@ -7,7 +7,6 @@ import asyncio
 import json
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit, urlunsplit
 
 import anyio
 import httpx
@@ -21,24 +20,13 @@ from mcp.server.stdio import stdio_server
 from mcp.shared.message import SessionMessage
 
 from global_memory import __version__
-from global_memory.errors import ErrorCode, GlobalMemoryError
+from global_memory.config import get_platform_paths, load_settings
+from global_memory.errors import GlobalMemoryError
 
+from .client import daemon_ready
 from .contract import CONTRACT_VERSION, failure, load_discovery
 from .daemon import read_token
-
-
-def _health_url(endpoint: str) -> str:
-    parsed = urlsplit(endpoint)
-    return urlunsplit((parsed.scheme, parsed.netloc, "/health/ready", "", ""))
-
-
-async def _daemon_ready(endpoint: str) -> bool:
-    try:
-        async with httpx.AsyncClient(timeout=0.5) as client:
-            response = await client.get(_health_url(endpoint))
-        return response.status_code == 200
-    except httpx.HTTPError:
-        return False
+from .local_runtime import serve_local_stdio
 
 
 async def _pump(
@@ -75,7 +63,7 @@ async def _proxy(endpoint: str, token: str) -> None:
         tasks.start_soon(_pump_until_closed, remote[0], local[1], tasks.cancel_scope)
 
 
-def _unavailable_server(endpoint: str) -> Server[Any]:
+def _error_server(error: GlobalMemoryError) -> Server[Any]:
     discovery = load_discovery()
     server: Server[Any] = Server("global-memory-proxy", version=__version__)
 
@@ -94,15 +82,7 @@ def _unavailable_server(endpoint: str) -> Server[Any]:
 
     @server.call_tool(validate_input=False)  # type: ignore[untyped-decorator]
     async def call_tool(_name: str, _arguments: dict[str, Any]) -> types.CallToolResult:
-        envelope = failure(
-            GlobalMemoryError(
-                ErrorCode.DAEMON_UNAVAILABLE,
-                "The shared Global Agent Memory daemon is unavailable.",
-                retryable=True,
-                details={"endpoint": endpoint},
-                remediation="Start the daemon with `global-memory daemon start` and retry.",
-            )
-        )
+        envelope = failure(error)
         return types.CallToolResult(
             content=[types.TextContent(type="text", text=json.dumps(envelope))],
             structuredContent=envelope,
@@ -112,8 +92,8 @@ def _unavailable_server(endpoint: str) -> Server[Any]:
     return server
 
 
-async def _serve_unavailable(endpoint: str) -> None:
-    server = _unavailable_server(endpoint)
+async def _serve_error(error: GlobalMemoryError) -> None:
+    server = _error_server(error)
     options = InitializationOptions(
         server_name="global-memory-proxy",
         server_version=__version__,
@@ -123,21 +103,46 @@ async def _serve_unavailable(endpoint: str) -> None:
         await server.run(read_stream, write_stream, options, raise_exceptions=False)
 
 
-async def run_proxy(endpoint: str, token_file: Path) -> None:
-    token = read_token(token_file)
-    if not await _daemon_ready(endpoint):
-        await _serve_unavailable(endpoint)
+async def run_proxy(
+    endpoint: str,
+    token_file: Path,
+    config_file: Path | None = None,
+    *,
+    direct: bool = False,
+) -> None:
+    if direct or not await daemon_ready(endpoint):
+        paths = get_platform_paths()
+        try:
+            settings = load_settings(config_file or paths.config_file)
+        except GlobalMemoryError as error:
+            await _serve_error(error)
+            return
+        await serve_local_stdio(
+            settings,
+            paths,
+            endpoint=endpoint,
+            token_file=token_file,
+        )
         return
+    token = read_token(token_file)
     try:
         await _proxy(endpoint, token)
     except (httpx.HTTPError, OSError):
-        await _serve_unavailable(endpoint)
+        paths = get_platform_paths()
+        try:
+            settings = load_settings(config_file or paths.config_file)
+        except GlobalMemoryError as error:
+            await _serve_error(error)
+            return
+        await serve_local_stdio(settings, paths, endpoint=endpoint, token_file=token_file)
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Proxy stdio MCP to the shared Global Agent Memory daemon.")
+    parser = argparse.ArgumentParser(description="Run the hybrid Global Agent Memory stdio MCP bridge.")
     parser.add_argument("--endpoint", default="http://127.0.0.1:8765/mcp/")
     parser.add_argument("--token-file", type=Path, required=True)
+    parser.add_argument("--config", type=Path)
+    parser.add_argument("--direct", action="store_true", help="Skip HTTP and run the MCP server in-process.")
     return parser
 
 
@@ -145,7 +150,7 @@ def main() -> None:
     """Console-script entry point; stdout is exclusively owned by MCP stdio."""
     args = _parser().parse_args()
     try:
-        asyncio.run(run_proxy(args.endpoint, args.token_file))
+        asyncio.run(run_proxy(args.endpoint, args.token_file, args.config, direct=args.direct))
     except GlobalMemoryError as exc:
         raise SystemExit(f"{exc.code.value}: {exc.message}") from exc
 

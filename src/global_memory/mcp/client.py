@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 from mcp import ClientSession
@@ -12,6 +13,21 @@ from mcp.client.streamable_http import streamable_http_client
 from global_memory.errors import ErrorCode, GlobalMemoryError
 
 from .daemon import read_token
+
+
+def _health_url(endpoint: str) -> str:
+    parsed = urlsplit(endpoint)
+    return urlunsplit((parsed.scheme, parsed.netloc, "/health/ready", "", ""))
+
+
+async def daemon_ready(endpoint: str) -> bool:
+    """Return whether a local HTTP runtime is ready without requiring authentication."""
+    try:
+        async with httpx.AsyncClient(timeout=0.5) as client:
+            response = await client.get(_health_url(endpoint))
+        return response.status_code == 200
+    except httpx.HTTPError:
+        return False
 
 
 async def call_http_tool(endpoint: str, token_file: Path, name: str, arguments: dict[str, Any]) -> dict[str, Any]:

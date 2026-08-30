@@ -24,10 +24,10 @@ from global_memory.domain.models import SUPPORTED_MEMORY_TYPES
 from global_memory.errors import ErrorCode, GlobalMemoryError
 from global_memory.integrations.manager import SPECS, ClientName, IntegrationManager
 from global_memory.integrations.verify import verify_client
-from global_memory.mcp.client import call_http_tool
 from global_memory.mcp.contract import load_discovery
 from global_memory.mcp.daemon import run_daemon
 from global_memory.mcp.daemon_control import daemon_status, start_daemon, stop_daemon
+from global_memory.mcp.local_runtime import call_runtime_tool
 from global_memory.mcp.stdio_proxy import run_proxy
 from global_memory.operations import (
     backup_vault,
@@ -101,7 +101,15 @@ def _call_runtime(
 ) -> None:
     try:
         resolved_endpoint, resolved_token = _runtime_target(endpoint, token_file, config_file)
-        envelope = asyncio.run(call_http_tool(resolved_endpoint, resolved_token, name, arguments))
+        envelope = asyncio.run(
+            call_runtime_tool(
+                resolved_endpoint,
+                resolved_token,
+                name,
+                arguments,
+                config_file=config_file,
+            )
+        )
     except GlobalMemoryError as error:
         _fail(error)
     print_json(data=envelope)
@@ -167,7 +175,7 @@ def setup_command(
     service: Annotated[
         bool,
         typer.Option("--service/--no-service", help="Install the native per-user background service."),
-    ] = True,
+    ] = False,
     verify: Annotated[
         bool,
         typer.Option("--verify/--no-verify", help="Run live acceptance for healthy detected clients."),
@@ -243,8 +251,7 @@ def setup_command(
             _wait_for_setup_daemon(manager.endpoint)
             typer.echo(f"[ok] {service_kind} service installed and ready")
         else:
-            state = start_daemon(settings, paths)
-            typer.echo(f"[ok] Daemon ready for this login session: {state.endpoint}")
+            typer.echo("[ok] Daemonless agent runtime ready")
 
         for client in targets:
             installed = manager.install(
@@ -420,11 +427,12 @@ def dashboard_command(
     try:
         resolved_endpoint, resolved_token = _runtime_target(endpoint, token_file, config_file)
         envelope = asyncio.run(
-            call_http_tool(
+            call_runtime_tool(
                 resolved_endpoint,
                 resolved_token,
                 "memory_dashboard_open",
                 {"open_browser": not no_open},
+                config_file=config_file,
             )
         )
     except GlobalMemoryError as error:
@@ -901,9 +909,18 @@ def mcp_discovery_command() -> None:
 def mcp_proxy_command(
     endpoint: Annotated[str, typer.Option("--endpoint")] = "http://127.0.0.1:8765/mcp/",
     token_file: Annotated[Path | None, typer.Option("--token-file")] = None,
+    config_file: Annotated[Path | None, typer.Option("--config")] = None,
+    direct: Annotated[bool, typer.Option("--direct", help="Skip HTTP and run in-process.")] = False,
 ) -> None:
-    """Run the protocol-pure stdio proxy in the foreground."""
-    asyncio.run(run_proxy(endpoint, token_file or get_platform_paths().auth_token))
+    """Run the hybrid stdio MCP bridge in the foreground."""
+    asyncio.run(
+        run_proxy(
+            endpoint,
+            token_file or get_platform_paths().auth_token,
+            config_file,
+            direct=direct,
+        )
+    )
 
 
 def _integration_targets(target: str) -> list[ClientName]:

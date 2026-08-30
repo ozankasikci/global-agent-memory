@@ -364,10 +364,16 @@ async def test_both_client_installers_verify_shared_daemon_and_project_isolation
         assert codex.ok, codex.checks
 
 
-async def test_stdio_proxy_reports_daemon_unavailable_with_stable_error(tmp_path: Path) -> None:
+async def test_stdio_bridge_uses_local_runtime_when_daemon_is_unavailable(tmp_path: Path) -> None:
     port = free_port()
     token_file = tmp_path / "auth-token"
     token_file.write_text("token\n")
+    config_file = tmp_path / "config.toml"
+    config_file.write_text(
+        f'vault_path = "{tmp_path / "vault"}"\n\n'
+        "[embeddings]\n"
+        "enabled = false\n"
+    )
     params = StdioServerParameters(
         command=sys.executable,
         args=[
@@ -377,6 +383,8 @@ async def test_stdio_proxy_reports_daemon_unavailable_with_stable_error(tmp_path
             f"http://127.0.0.1:{port}/mcp/",
             "--token-file",
             str(token_file),
+            "--config",
+            str(config_file),
         ],
     )
     async with (
@@ -385,5 +393,35 @@ async def test_stdio_proxy_reports_daemon_unavailable_with_stable_error(tmp_path
     ):
         await session.initialize()
         result = await session.call_tool("memory_status", {})
-        assert result.isError and result.structuredContent
-        assert result.structuredContent["error"]["code"] == "DAEMON_UNAVAILABLE"
+        assert not result.isError and result.structuredContent
+        assert result.structuredContent["data"]["transport"] == "stdio-direct"
+
+        remembered = await session.call_tool(
+            "memory_remember",
+            {
+                "request_id": "daemonless-create",
+                "title": "Daemonless memory",
+                "content": "This memory was created without an HTTP server.",
+                "type": "fact",
+                "scope": "global",
+            },
+        )
+        assert not remembered.isError
+        memory_path = Path(remembered.structuredContent["data"]["path"])
+        found = await session.call_tool(
+            "memory_search",
+            {"query": "without HTTP server", "mode": "keyword", "include_candidates": True},
+        )
+        assert not found.isError
+        assert found.structuredContent["data"]["results"][0]["title"] == "Daemonless memory"
+
+        text = memory_path.read_text()
+        body_start = text.index("\n---\n") + 5
+        memory_path.write_text(text[:body_start] + "Edited externally in Markdown.\n")
+        await asyncio.sleep(1.05)
+        refreshed = await session.call_tool(
+            "memory_search",
+            {"query": "Edited externally", "mode": "keyword", "include_candidates": True},
+        )
+        assert not refreshed.isError
+        assert refreshed.structuredContent["data"]["results"][0]["title"] == "Daemonless memory"

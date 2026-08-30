@@ -62,7 +62,9 @@ def test_every_runtime_cli_command_routes_to_a_frozen_mcp_tool(monkeypatch: pyte
 def test_dashboard_command_routes_through_mcp_and_reports_launch_url(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[tuple[str, dict[str, Any]]] = []
 
-    async def call(_endpoint, _token, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    async def call(
+        _endpoint, _token, name: str, arguments: dict[str, Any], **_options: Any
+    ) -> dict[str, Any]:
         calls.append((name, arguments))
         return {
             "ok": True,
@@ -74,7 +76,7 @@ def test_dashboard_command_routes_through_mcp_and_reports_launch_url(monkeypatch
         }
 
     monkeypatch.setattr(cli, "_runtime_target", lambda *_args: ("http://localhost/mcp", None))
-    monkeypatch.setattr(cli, "call_http_tool", call)
+    monkeypatch.setattr(cli, "call_runtime_tool", call)
     result = CliRunner().invoke(cli.app, ["dashboard"])
 
     assert result.exit_code == 0, result.output
