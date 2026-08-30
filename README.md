@@ -16,12 +16,15 @@
 
 Global Agent Memory gives multiple coding agents one shared, reviewable memory without
 handing control of your knowledge base to a hosted service. Markdown files are
-canonical, an authenticated local MCP daemon is the public agent interface, and the
-dashboard lets a human approve, edit, protect, or remove what agents remember.
+canonical, a hybrid local MCP runtime is the public agent interface, and the dashboard
+lets a human approve, edit, protect, or remove what agents remember. Agent commands work
+without a background server. The authenticated localhost server starts on demand for
+the dashboard and can optionally run continuously for live file watching and shared
+embedding work.
 
 **One Vault. Multiple agents. Human-controlled memory.**
 
-![Global Agent Memory connects AI agents through a local MCP daemon to owner-controlled Obsidian and dashboard surfaces](docs/assets/global-agent-memory-flow.svg)
+![Global Agent Memory connects AI agents through a daemonless-capable hybrid MCP runtime to owner-controlled Markdown and dashboard surfaces](docs/assets/global-agent-memory-flow.svg)
 
 [Quick start](#quick-start) · [Obsidian Vault](#obsidian-vault) ·
 [Dashboard](#dashboard) · [How it works](#how-it-works) ·
@@ -76,13 +79,15 @@ reviewed by a person, updated over time, or hidden behind explicit permission.
   recreated from Markdown.
 - **Frozen MCP V1 contract** — tools, resources, prompts, envelopes, and compatibility
   rules are versioned in the repository.
-- **Local security boundary** — the daemon binds to `127.0.0.1` and requires a generated
-  bearer token stored outside the Vault.
+- **No required background server:** Claude Code, Codex, and CLI commands fall back to
+  the same MCP application services in-process when the optional daemon is offline.
+- **Local security boundary:** when the dashboard or HTTP MCP is active, the server
+  binds to `127.0.0.1` and requires a generated bearer token stored outside the Vault.
 
 ### Built for real project vaults
 
 The opt-in performance suite creates **10,000 synthetic memories** and exercises the
-same indexing and retrieval paths used by the daemon. On the recorded macOS ARM64
+same indexing and retrieval paths used by both runtime modes. On the recorded macOS ARM64
 baseline, a full rebuild takes 36.5 seconds, warm keyword search P95 is 56 ms, warm
 hybrid search P95 is 76 ms, and incremental stdio proxy overhead is 1.5 ms. Results vary
 by machine; the changed-note, search, and proxy budgets run as regression gates. See the
@@ -141,10 +146,11 @@ global-memory setup
 ```
 
 Setup shows one plan and asks once before it changes anything. It initializes the local
-Vault, creates the protected token, installs and starts the native per-user service,
-detects Claude Code and Codex, installs their MCP integrations and skills, verifies
-healthy clients, and opens the dashboard. The command is idempotent, so running it again
-repairs or updates managed components without replacing unrelated client configuration.
+Vault, creates the protected token, detects Claude Code and Codex, installs their MCP
+integrations and skills, verifies healthy clients, and opens the dashboard. Opening the
+dashboard starts its authenticated localhost server on demand. The command is
+idempotent, so running it again repairs or updates managed components without replacing
+unrelated client configuration.
 
 Use flags when you need a non-default setup:
 
@@ -158,6 +164,9 @@ global-memory setup --vault "$HOME/Memory"
 # Install only one client, or no client yet
 global-memory setup --clients claude-code
 global-memory setup --clients none
+
+# Optional: install an always-on native service for live watching and shared indexing
+global-memory setup --service
 
 # Preview without changing files or services
 global-memory setup --dry-run
@@ -248,8 +257,10 @@ Initialization adds an Obsidian workspace without replacing your existing files:
 - project overview hubs that embed project memories and remain stable as notes move
   through candidate, active, rejected, superseded, or archived folders;
 - wikilinks and reciprocal supersession links for backlinks and graph navigation;
-- watcher synchronization, so ordinary content and descriptive-property edits made in
-  Obsidian become searchable without restarting the service.
+- request-time synchronization, so ordinary content and descriptive-property edits made
+  in Obsidian become searchable without a background service;
+- optional watcher synchronization for immediate indexing when the background service
+  is enabled.
 
 Obsidian is optional: the same Markdown remains readable and editable with any text
 editor. Lifecycle and access-policy changes should still go through the dashboard, MCP,
@@ -297,23 +308,24 @@ and poll for access, but they cannot approve, deny, or revoke grants.
 
 ```mermaid
 flowchart LR
-    A[Claude Code] -->|stdio MCP proxy| D[global-memoryd]
-    B[Codex] -->|stdio MCP proxy| D
-    C[Other MCP clients] -->|Streamable HTTP| D
+    A[Claude Code] -->|stdio MCP| H[Hybrid MCP runtime]
+    B[Codex] -->|stdio MCP| H
+    C[CLI] -->|MCP| H
 
-    D --> E[Application and domain services]
+    H -->|daemonless default| E[Application and domain services]
+    H -.->|optional localhost daemon| D[Watcher, shared indexing, dashboard]
+    D --> E
     E --> V[Markdown Vault<br/>canonical state]
     E --> I[SQLite FTS5 and sqlite-vec<br/>generated state]
     E --> O[Ollama embeddings<br/>optional]
-    E --> W[Local dashboard<br/>owner control]
+    D --> W[Local dashboard<br/>owner control]
 ```
 
-The daemon is the single owner of the Vault watcher, generated indexes, embedding queue,
-and MCP transport. Streamable HTTP clients connect directly on localhost; stdio-only
-clients launch the thin `global-memory-mcp` proxy. Both paths expose the same MCP V1
-contract. Requests are stateless because durable memory belongs to the shared daemon
-rather than to an expiring client session, which keeps long-lived agent bridges reliable
-across idle periods.
+The `global-memory-mcp` bridge prefers a healthy shared daemon and otherwise runs the
+same MCP server and application services in-process. Both paths expose the same frozen
+MCP V1 contract and use the same canonical Markdown and generated SQLite state. The
+optional daemon owns real-time Vault watching, background embedding retries, HTTP MCP,
+and dashboard sessions. Agent memory operations do not depend on its availability.
 
 The dependency direction is:
 
@@ -348,8 +360,9 @@ See [MCP Contract V1](docs/mcp-contract-v1.md) and the generated
 
 ## CLI examples
 
-The CLI uses the same MCP path as connected agents; it does not bypass the daemon to
-read generated state.
+The CLI uses the same MCP path as connected agents. It prefers the optional daemon and
+otherwise invokes the frozen MCP contract through an in-memory transport. It never
+bypasses access control by reading Markdown or SQLite directly.
 
 ```shell
 # Check health
@@ -386,7 +399,7 @@ reference.
 
 Global Agent Memory is designed as a local service, not a remotely exposed memory API.
 
-- The daemon is restricted to `127.0.0.1`.
+- The optional HTTP and dashboard server is restricted to `127.0.0.1`.
 - Streamable HTTP requires a generated local bearer token.
 - The token, database, logs, locks, and generated state remain outside the Vault.
 - Token files use user-only permissions.
@@ -460,7 +473,7 @@ intentionally introduced.
 | [Operations](docs/operations.md)                                      | Installation, daemon management, diagnostics, backup, restore, upgrades, and recovery |
 | [Claude Code](docs/claude-code.md)                                    | Managed skill and MCP registration for Claude Code                                    |
 | [Codex](docs/codex.md)                                                | Managed skill and MCP registration for Codex                                          |
-| [Architecture](docs/architecture.md)                                  | Dependency direction and daemon ownership model                                       |
+| [Architecture](docs/architecture.md)                                  | Dependency direction and hybrid runtime ownership model                               |
 | [Configuration](docs/configuration.md)                                | Platform-native locations, environment variables, and security defaults               |
 | [MCP Contract V1](docs/mcp-contract-v1.md)                            | Public compatibility and response-envelope rules                                      |
 | [Testing](docs/testing.md)                                            | Standard, performance, and live acceptance strategy                                   |

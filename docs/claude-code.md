@@ -37,6 +37,11 @@ claude mcp add global-memory --scope user -- global-memory-mcp --endpoint http:/
 
 The installer backs up the user config first. If the CLI is unavailable, it makes a guarded `mcpServers` edit in the backed-up user JSON. Existing unmanaged skill or server entries are refused, including with `--force`. Force applies only to a changed artifact already recorded in the integration manifest.
 
+The registered stdio bridge prefers the optional local daemon and falls back to the same
+MCP application services in-process. Claude Code memory commands therefore work without
+an always-running server. Opening the dashboard starts its authenticated localhost
+server on demand.
+
 After verification, tell Claude Code: **“Open the Global Agent Memory dashboard.”** The installed skill instructs it to call `memory_dashboard_open`, which creates a short-lived authenticated browser session. You can always use `global-memory dashboard` directly from a terminal.
 
 Uninstall removes only recorded, still-matching artifacts:
