@@ -182,6 +182,20 @@ CREATE INDEX IF NOT EXISTS access_events_created ON access_events(created_at DES
 """
 
 
+def _sql_statements(script: str) -> Iterator[str]:
+    """Yield complete SQLite statements so migrations can share one outer lock."""
+    buffered = ""
+    for line in script.splitlines():
+        buffered += line + "\n"
+        if sqlite3.complete_statement(buffered):
+            statement = buffered.strip()
+            if statement:
+                yield statement
+            buffered = ""
+    if buffered.strip():
+        raise sqlite3.DatabaseError("migration contains an incomplete SQL statement")
+
+
 @dataclass(frozen=True, slots=True)
 class DatabaseOpenResult:
     database: IndexDatabase
@@ -194,47 +208,38 @@ class IndexDatabase:
     def __init__(self, path: Path) -> None:
         self.path = path
         path.parent.mkdir(parents=True, exist_ok=True)
-        self.connection = sqlite3.connect(path, isolation_level=None)
+        self.connection = sqlite3.connect(path, isolation_level=None, timeout=30)
         self.connection.row_factory = sqlite3.Row
+        self.connection.execute("PRAGMA busy_timeout=30000")
         self.connection.execute("PRAGMA journal_mode=WAL")
         self.connection.execute("PRAGMA foreign_keys=ON")
         self._migrate()
 
     def _migrate(self) -> None:
-        current = self.connection.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_migrations'"
-        ).fetchone()
-        version = 0
-        if current:
+        migrations = ((1, MIGRATION_1), (2, MIGRATION_2), (3, MIGRATION_3), (4, MIGRATION_4))
+        self.connection.execute("BEGIN IMMEDIATE")
+        try:
+            self.connection.execute(
+                "CREATE TABLE IF NOT EXISTS schema_migrations "
+                "(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
+            )
             row = self.connection.execute("SELECT COALESCE(MAX(version), 0) FROM schema_migrations").fetchone()
             version = int(row[0])
-        if version < 1:
-            self.connection.executescript(
-                "BEGIN IMMEDIATE;\n"
-                + MIGRATION_1
-                + "\nINSERT INTO schema_migrations(version, applied_at) VALUES (1, datetime('now'));\nCOMMIT;"
-            )
-            version = 1
-        if version < 2:
-            self.connection.executescript(
-                "BEGIN IMMEDIATE;\n"
-                + MIGRATION_2
-                + "\nINSERT INTO schema_migrations(version, applied_at) VALUES (2, datetime('now'));\nCOMMIT;"
-            )
-            version = 2
-        if version < 3:
-            self.connection.executescript(
-                "BEGIN IMMEDIATE;\n"
-                + MIGRATION_3
-                + "\nINSERT INTO schema_migrations(version, applied_at) VALUES (3, datetime('now'));\nCOMMIT;"
-            )
-            version = 3
-        if version < 4:
-            self.connection.executescript(
-                "BEGIN IMMEDIATE;\n"
-                + MIGRATION_4
-                + "\nINSERT INTO schema_migrations(version, applied_at) VALUES (4, datetime('now'));\nCOMMIT;"
-            )
+            for target, script in migrations:
+                if version >= target:
+                    continue
+                for statement in _sql_statements(script):
+                    self.connection.execute(statement)
+                self.connection.execute(
+                    "INSERT INTO schema_migrations(version, applied_at) VALUES (?, datetime('now'))",
+                    (target,),
+                )
+                version = target
+        except BaseException:
+            self.connection.execute("ROLLBACK")
+            raise
+        else:
+            self.connection.execute("COMMIT")
 
     @contextmanager
     def transaction(self) -> Iterator[None]:
