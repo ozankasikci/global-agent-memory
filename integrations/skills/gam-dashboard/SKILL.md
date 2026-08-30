@@ -7,4 +7,6 @@ allow_implicit_invocation: false
 
 # GAM Dashboard
 
-Call `memory_dashboard_open` with `open_browser=true`. Report success without printing or inventing a dashboard URL.
+Call `memory_dashboard_open` with `open_browser=true`. The MCP runtime starts the
+authenticated localhost dashboard server on demand when needed. Report success without
+printing or inventing a dashboard URL.

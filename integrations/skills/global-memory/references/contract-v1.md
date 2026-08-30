@@ -8,7 +8,7 @@ Use this reference only to choose a frozen capability. Discovery remains authori
 - `memory_search`: focused lookup for exact IDs, identifiers, error strings, decisions, conventions, or solutions.
 - `memory_get`: full current note before citation, update, or lifecycle work.
 - `memory_tags`: browse bounded tag metadata.
-- `memory_status`: daemon, index, watcher, vector, conflict, and degradation state.
+- `memory_status`: runtime transport, index, watcher, vector, conflict, and degradation state.
 - `memory_open`: return the Vault path and encoded Obsidian URI.
 - `memory_dashboard_open`: issue and optionally open a short-lived authenticated local dashboard session.
 - `memory_access_request`: ask the owner for a purpose-bound temporary protected-memory capability without revealing protected metadata.

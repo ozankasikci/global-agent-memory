@@ -5,7 +5,7 @@ description: Retrieve and curate durable, project-aware knowledge through the Gl
 
 # Global Agent Memory
 
-Skill version: `1.1.0`
+Skill version: `1.2.0`
 MCP contract version: `v1`
 
 Use the canonical MCP capability names. Do not assume a client-specific server prefix. Read [references/contract-v1.md](references/contract-v1.md) only when exact capability selection or arguments are unclear.
@@ -25,7 +25,7 @@ Do not turn retrieval into ceremony for trivial work. If the available context i
 
 When the user explicitly asks to open, show, or launch the Global Agent Memory dashboard, call `memory_dashboard_open`
 with `open_browser=true`. Do not invent a URL or substitute Obsidian. The tool issues a short-lived authenticated local
-session and opens the dashboard through the shared daemon.
+session and starts the localhost dashboard server on demand when necessary.
 
 Agents never approve, deny, or revoke access requests. Sealed memories are owner-only and cannot be retrieved through MCP. Never store credentials or secrets as memory.
 
@@ -71,6 +71,8 @@ Before finishing substantial work:
 ## Failure behavior
 
 - If semantic retrieval degrades, use keyword mode unless semantic-only behavior was explicitly required.
-- If the daemon is unavailable, report `DAEMON_UNAVAILABLE` and the remediation; do not read generated SQLite directly.
+- A missing background daemon is not a memory outage. Continue through the daemonless MCP runtime.
+- Report `DAEMON_UNAVAILABLE` only when an operation that requires HTTP, such as dashboard startup, actually fails.
+- Never bypass MCP by reading generated SQLite directly.
 - If a note is invalid or duplicated, surface the stable conflict and do not silently choose a copy.
 - Never bypass the MCP interface by editing lifecycle metadata or generated indexes.

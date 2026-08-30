@@ -30,7 +30,7 @@ def test_skill_frontmatter_versions_and_required_workflow_sections() -> None:
             "## Failure behavior",
         )
     )
-    assert "Skill version: `1.1.0`" in text
+    assert "Skill version: `1.2.0`" in text
     assert "MCP contract version: `v1`" in text
 
 
