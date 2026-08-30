@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import subprocess
 import tempfile
 import uuid
@@ -10,9 +11,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-import httpx
 from mcp import ClientSession
-from mcp.client.streamable_http import streamable_http_client
+from mcp.client.stdio import StdioServerParameters, stdio_client
 
 from global_memory.integrations.manager import ClientName, IntegrationManager
 
@@ -34,32 +34,36 @@ def _structured(result: Any) -> dict[str, Any]:
 
 
 async def verify_client(manager: IntegrationManager, client_name: ClientName) -> VerificationReport:
-    """Verify installed artifact plus one shared-daemon isolation/lifecycle smoke flow."""
+    """Verify installed artifacts plus one real hybrid-stdio lifecycle smoke flow."""
     install_status = manager.status(client_name)
     checks = {
         "client_executable": bool(install_status["client_available"]),
         "skill_hash": bool(install_status["skill_valid"]),
         "mcp_registration": bool(install_status["mcp_registered"]),
     }
-    token = manager.token_file.read_text().strip()
     prefix = uuid.uuid4().hex[:10]
     created: list[tuple[str, str]] = []
     projects: list[str] = []
     try:
-        async with (
-            httpx.AsyncClient(headers={"Authorization": f"Bearer {token}"}) as http,
-            streamable_http_client(manager.endpoint, http_client=http) as (read_stream, write_stream, _),
-            ClientSession(read_stream, write_stream) as session,
-        ):
-            await session.initialize()
-            try:
-                await _exercise_client(session, checks, prefix, created, projects)
-            finally:
-                checks.update(await _cleanup_fixture(session, prefix, created, projects))
+        command = manager.mcp_command()
+        parameters = StdioServerParameters(command=command[0], args=command[1:])
+        error_log = await asyncio.to_thread(Path(os.devnull).open, "w")
+        try:
+            async with (
+                stdio_client(parameters, errlog=error_log) as (read_stream, write_stream),
+                ClientSession(read_stream, write_stream) as session,
+            ):
+                await session.initialize()
+                try:
+                    await _exercise_client(session, checks, prefix, created, projects)
+                finally:
+                    checks.update(await _cleanup_fixture(session, prefix, created, projects))
+        finally:
+            await asyncio.to_thread(error_log.close)
     except Exception:
-        checks.setdefault("daemon_connectivity", False)
+        checks.setdefault("mcp_connectivity", False)
     else:
-        checks["daemon_connectivity"] = True
+        checks["mcp_connectivity"] = True
     return VerificationReport(client=client_name, ok=all(checks.values()), checks=checks)
 
 
