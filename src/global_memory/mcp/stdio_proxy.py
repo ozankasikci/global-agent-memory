@@ -20,7 +20,7 @@ from mcp.server.stdio import stdio_server
 from mcp.shared.message import SessionMessage
 
 from global_memory import __version__
-from global_memory.config import get_platform_paths, load_settings
+from global_memory.config import PlatformPaths, get_platform_paths, load_settings
 from global_memory.errors import GlobalMemoryError
 
 from .client import daemon_ready
@@ -103,15 +103,28 @@ async def _serve_error(error: GlobalMemoryError) -> None:
         await server.run(read_stream, write_stream, options, raise_exceptions=False)
 
 
+def _runtime_paths(state_path: Path | None) -> PlatformPaths:
+    paths = get_platform_paths()
+    if state_path is None:
+        return paths
+    return PlatformPaths(
+        config_dir=paths.config_dir,
+        data_dir=state_path,
+        log_dir=paths.log_dir,
+        runtime_dir=paths.runtime_dir,
+    )
+
+
 async def run_proxy(
     endpoint: str,
     token_file: Path,
     config_file: Path | None = None,
+    state_path: Path | None = None,
     *,
     direct: bool = False,
 ) -> None:
     if direct or not await daemon_ready(endpoint):
-        paths = get_platform_paths()
+        paths = _runtime_paths(state_path)
         try:
             settings = load_settings(config_file or paths.config_file)
         except GlobalMemoryError as error:
@@ -128,7 +141,7 @@ async def run_proxy(
     try:
         await _proxy(endpoint, token)
     except (httpx.HTTPError, OSError):
-        paths = get_platform_paths()
+        paths = _runtime_paths(state_path)
         try:
             settings = load_settings(config_file or paths.config_file)
         except GlobalMemoryError as error:
@@ -142,6 +155,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--endpoint", default="http://127.0.0.1:8765/mcp/")
     parser.add_argument("--token-file", type=Path, required=True)
     parser.add_argument("--config", type=Path)
+    parser.add_argument("--state", type=Path, help="Generated-state directory for direct mode.")
     parser.add_argument("--direct", action="store_true", help="Skip HTTP and run the MCP server in-process.")
     return parser
 
@@ -150,7 +164,15 @@ def main() -> None:
     """Console-script entry point; stdout is exclusively owned by MCP stdio."""
     args = _parser().parse_args()
     try:
-        asyncio.run(run_proxy(args.endpoint, args.token_file, args.config, direct=args.direct))
+        asyncio.run(
+            run_proxy(
+                args.endpoint,
+                args.token_file,
+                args.config,
+                args.state,
+                direct=args.direct,
+            )
+        )
     except GlobalMemoryError as exc:
         raise SystemExit(f"{exc.code.value}: {exc.message}") from exc
 

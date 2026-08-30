@@ -910,6 +910,7 @@ def mcp_proxy_command(
     endpoint: Annotated[str, typer.Option("--endpoint")] = "http://127.0.0.1:8765/mcp/",
     token_file: Annotated[Path | None, typer.Option("--token-file")] = None,
     config_file: Annotated[Path | None, typer.Option("--config")] = None,
+    state_path: Annotated[Path | None, typer.Option("--state")] = None,
     direct: Annotated[bool, typer.Option("--direct", help="Skip HTTP and run in-process.")] = False,
 ) -> None:
     """Run the hybrid stdio MCP bridge in the foreground."""
@@ -918,6 +919,7 @@ def mcp_proxy_command(
             endpoint,
             token_file or get_platform_paths().auth_token,
             config_file,
+            state_path,
             direct=direct,
         )
     )

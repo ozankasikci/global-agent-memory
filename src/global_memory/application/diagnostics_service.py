@@ -208,6 +208,8 @@ async def _transport_checks(settings: GlobalMemorySettings, paths: PlatformPaths
                 str(paths.auth_token),
                 "--config",
                 str(paths.config_file),
+                "--state",
+                str(paths.data_dir),
                 "--direct",
             ],
         )

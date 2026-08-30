@@ -18,9 +18,17 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 from mcp.client.streamable_http import streamable_http_client
 
 from global_memory.application.diagnostics_service import run_diagnostics
-from global_memory.config import EmbeddingSettings, GlobalMemorySettings, MCPSettings, PlatformPaths
+from global_memory.config import (
+    EmbeddingSettings,
+    GlobalMemorySettings,
+    MCPSettings,
+    PlatformPaths,
+    get_platform_paths,
+    render_config,
+)
 from global_memory.integrations.manager import ClientSpec, IntegrationManager
 from global_memory.integrations.verify import verify_client
+from global_memory.vault.initialize import initialize
 
 pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 
@@ -337,6 +345,7 @@ async def test_doctor_verifies_direct_and_stdio_mcp_connectivity(tmp_path: Path)
             runtime_dir=tmp_path / "run",
         )
         assert paths.auth_token == token_file
+        paths.config_file.write_text(render_config(settings))
         report = await run_diagnostics(settings, paths)
         transport = {check.name: check.status for check in report.checks}
         assert transport["daemon_readiness"] == "pass"
@@ -364,16 +373,41 @@ async def test_both_client_installers_verify_shared_daemon_and_project_isolation
         assert codex.ok, codex.checks
 
 
+async def test_client_verification_works_without_daemon(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    home = tmp_path / "home"
+    monkeypatch.setenv("HOME", str(home))
+    paths = get_platform_paths()
+    settings = GlobalMemorySettings(
+        vault_path=home / "Documents" / "Global Agent Memory",
+        mcp=MCPSettings(port=free_port()),
+        embeddings=EmbeddingSettings(enabled=False),
+    )
+    initialize(settings, paths)
+    adapter = _FakeClientRegistration()
+    manager = IntegrationManager(
+        home,
+        paths.data_dir,
+        adapter=adapter,
+        endpoint=f"http://127.0.0.1:{settings.mcp.port}/mcp/",
+        token_file=paths.auth_token,
+    )
+    manager.install("codex", copy=True)
+
+    report = await verify_client(manager, "codex")
+
+    assert report.ok, report.checks
+    assert report.checks["mcp_connectivity"]
+
+
 async def test_stdio_bridge_uses_local_runtime_when_daemon_is_unavailable(tmp_path: Path) -> None:
     port = free_port()
     token_file = tmp_path / "auth-token"
     token_file.write_text("token\n")
     config_file = tmp_path / "config.toml"
-    config_file.write_text(
-        f'vault_path = "{tmp_path / "vault"}"\n\n'
-        "[embeddings]\n"
-        "enabled = false\n"
-    )
+    config_file.write_text(f'vault_path = "{tmp_path / "vault"}"\n\n[embeddings]\nenabled = false\n')
     params = StdioServerParameters(
         command=sys.executable,
         args=[
@@ -385,6 +419,8 @@ async def test_stdio_bridge_uses_local_runtime_when_daemon_is_unavailable(tmp_pa
             str(token_file),
             "--config",
             str(config_file),
+            "--state",
+            str(tmp_path / "state"),
         ],
     )
     async with (
@@ -415,9 +451,12 @@ async def test_stdio_bridge_uses_local_runtime_when_daemon_is_unavailable(tmp_pa
         assert not found.isError
         assert found.structuredContent["data"]["results"][0]["title"] == "Daemonless memory"
 
-        text = memory_path.read_text()
+        text = await asyncio.to_thread(memory_path.read_text)
         body_start = text.index("\n---\n") + 5
-        memory_path.write_text(text[:body_start] + "Edited externally in Markdown.\n")
+        await asyncio.to_thread(
+            memory_path.write_text,
+            text[:body_start] + "Edited externally in Markdown.\n",
+        )
         await asyncio.sleep(1.05)
         refreshed = await session.call_tool(
             "memory_search",

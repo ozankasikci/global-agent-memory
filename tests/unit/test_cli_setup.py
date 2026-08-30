@@ -80,7 +80,7 @@ def test_setup_dry_run_uses_safe_defaults_without_writing(tmp_path: Path, monkey
     assert not (home / "Documents/Global Agent Memory").exists()
 
 
-def test_setup_composes_initialization_daemon_and_requested_clients(
+def test_setup_defaults_to_daemonless_runtime_and_connects_requested_clients(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     paths = _paths(tmp_path)
@@ -117,7 +117,6 @@ def test_setup_composes_initialization_daemon_and_requested_clients(
             str(vault),
             "--clients",
             "all",
-            "--no-service",
             "--no-verify",
             "--no-open-dashboard",
             "--yes",
@@ -128,6 +127,7 @@ def test_setup_composes_initialization_daemon_and_requested_clients(
     assert initialized == [vault]
     assert managers[0].installed == ["claude-code", "codex"]
     assert all(options["force"] is False for options in managers[0].install_options or [])
+    assert "Daemonless agent runtime ready" in result.output
     assert "Setup complete" in result.output
 
 

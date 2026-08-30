@@ -62,9 +62,7 @@ def test_every_runtime_cli_command_routes_to_a_frozen_mcp_tool(monkeypatch: pyte
 def test_dashboard_command_routes_through_mcp_and_reports_launch_url(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[tuple[str, dict[str, Any]]] = []
 
-    async def call(
-        _endpoint, _token, name: str, arguments: dict[str, Any], **_options: Any
-    ) -> dict[str, Any]:
+    async def call(_endpoint, _token, name: str, arguments: dict[str, Any], **_options: Any) -> dict[str, Any]:
         calls.append((name, arguments))
         return {
             "ok": True,
