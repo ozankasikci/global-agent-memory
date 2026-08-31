@@ -483,9 +483,10 @@ intentionally introduced.
 
 ## Project status
 
-Global Agent Memory is under active V1 development and is published on PyPI as
-[`global-memory-mcp`](https://pypi.org/project/global-memory-mcp/). The package version
-is `0.1.6`; the MCP contract version is `v1`.
+Global Agent Memory is under active V1 development and is distributed through
+[GitHub Releases](https://github.com/ozankasikci/global-agent-memory/releases) and
+[PyPI](https://pypi.org/project/global-memory-mcp/). The current GitHub release and
+source package version is `0.1.7`; the MCP contract version is `v1`.
 
 The product name is **Global Agent Memory**. The technical identifiers `global-memory`,
 `global-memory-mcp`, `global-memoryd`, `global_memory`, and `product: global-memory`
