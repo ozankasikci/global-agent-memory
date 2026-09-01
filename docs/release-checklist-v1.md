@@ -1,9 +1,9 @@
 # V1 release checklist
 
-- Date: 2026-07-16
-- Package: `0.1.6`
+- Date: 2026-08-31
+- Package: `0.1.7`
 - MCP contract: `v1`
-- Status: **`v0.1.6` development release ready; a stable V1 release remains blocked on complete live client/UI acceptance.**
+- Status: **`v0.1.7` development release ready; a stable V1 release remains blocked on complete live client/UI acceptance.**
 
 ## Local publishing credential
 
@@ -24,6 +24,7 @@ commits, logs, issues, release notes, or Global Agent Memory.
 | Rebuildability | Delete SQLite/WAL/SHM and recover equivalent visible memory from Markdown | Pass |
 | Concurrency/idempotency | Two stale concurrent updates yield one success/one `VERSION_CONFLICT`; exact request replay is stable and changed payload conflicts | Pass |
 | Recovery | Kill daemon immediately after external write; startup reconciliation indexes the durable Markdown edit | Pass |
+| Daemonless operation | Direct MCP and stdio clients reuse the application in-process, reconcile external Markdown, and preserve isolated state without a background service | Pass |
 | MCP contract/transports | Frozen discovery and every tool/resource/prompt through official harness; HTTP and stdio E2E | Pass |
 | Shared skill | One validated canonical skill installed and hash-verified for both fake clients | Pass |
 | Visualization | Templates/Bases YAML, project hubs, review workflow, reciprocal links and watcher tests | Pass (automated) |
@@ -34,8 +35,8 @@ commits, logs, issues, release notes, or Global Agent Memory.
 | Gate | Evidence | Status |
 | --- | --- | --- |
 | Ruff + strict mypy | `make check` | Pass |
-| Unit / integration / contract / E2E | 79 / 59 / 19 / 13, plus 8 dashboard component tests | Pass |
-| Coverage | In-process target excludes subprocess-only adapters; final result 86.66% | Pass |
+| Unit / integration / contract / E2E | 81 / 60 / 19 / 15, plus 8 dashboard component tests | Pass |
+| Coverage | In-process target excludes subprocess-only adapters; final result 86.05% | Pass |
 | Performance | 10k-note suite, all four budgets pass | Pass |
 | Fresh install/upgrade/docs | Isolated wheel, console scripts, schema upgrade fixture, operations/client docs | Pass |
 | Linux/macOS, Python 3.12/3.14 | Full gate passed locally on macOS 3.12.11 and previously on 3.14.0rc3; no remote workflows are currently configured | Awaiting Linux/remote CI decision |

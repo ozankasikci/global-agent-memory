@@ -180,6 +180,10 @@ class IntegrationManager:
             str(self.token_file),
         ]
 
+    def mcp_command(self) -> list[str]:
+        """Return the exact managed stdio command used for live verification."""
+        return self._command()
+
     def _backup(self, path: Path, client: ClientName) -> str | None:
         if not path.exists():
             return None

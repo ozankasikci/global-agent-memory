@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import inspect
 import json
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import asdict, dataclass, is_dataclass
 from datetime import date, datetime
 from enum import Enum
@@ -119,7 +120,8 @@ class ServiceContainer:
     transport: str
     vault_name: str
     watcher_state: str = "not_started"
-    dashboard_launcher: Callable[[bool], dict[str, Any]] | None = None
+    dashboard_launcher: Callable[[bool], dict[str, Any] | Awaitable[dict[str, Any]]] | None = None
+    before_request: Callable[[], None] | None = None
     access: AccessService | None = None
 
     @property
@@ -544,7 +546,20 @@ async def _dispatch_async(
     name: str,
     arguments: dict[str, Any],
 ) -> tuple[Any, list[str]]:
-    """Dispatch daemon retrieval without blocking its event loop on embeddings."""
+    """Refresh disposable state and dispatch without blocking on provider I/O."""
+    if container.before_request is not None:
+        container.before_request()
+    if name == "memory_dashboard_open":
+        if container.dashboard_launcher is None:
+            raise GlobalMemoryError(
+                ErrorCode.DAEMON_UNAVAILABLE,
+                "The dashboard server could not be started.",
+                remediation="Run `global-memory dashboard` and inspect the local daemon log if startup fails.",
+            )
+        launched = container.dashboard_launcher(bool(arguments.get("open_browser", True)))
+        if inspect.isawaitable(launched):
+            launched = await launched
+        return launched, []
     if name == "memory_search":
         arguments.pop("verbose", None)
         page = await container.search.search_async(SearchRequest.model_validate(arguments))
@@ -557,6 +572,8 @@ async def _dispatch_async(
 
 
 def _resource(container: ServiceContainer, uri: str) -> Any:
+    if container.before_request is not None:
+        container.before_request()
     if uri == "memory://v1/status":
         return _status(container)
     if uri == "memory://v1/projects":

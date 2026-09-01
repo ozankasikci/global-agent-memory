@@ -17,9 +17,12 @@ import sqlite_vec  # type: ignore[import-untyped]
 from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 from mcp.client.streamable_http import streamable_http_client
+from mcp.shared.memory import create_connected_server_and_client_session
 
 from global_memory.config import GlobalMemorySettings, PlatformPaths
 from global_memory.mcp.contract import contract_root, load_discovery
+from global_memory.mcp.local_runtime import build_local_container
+from global_memory.mcp.server import create_mcp_server
 from global_memory.vault.initialize import MANAGED_DIRECTORIES
 from global_memory.vault.markdown import parse_note
 from global_memory.vault.paths import is_managed_memory_path
@@ -127,6 +130,7 @@ def _database_checks(paths: PlatformPaths) -> list[DiagnosticCheck]:
 
 async def _transport_checks(settings: GlobalMemorySettings, paths: PlatformPaths) -> list[DiagnosticCheck]:
     endpoint = f"http://{settings.mcp.host}:{settings.mcp.port}/mcp/"
+    checks: list[DiagnosticCheck] = []
     try:
         token = paths.auth_token.read_text().strip()
         async with (
@@ -140,46 +144,96 @@ async def _transport_checks(settings: GlobalMemorySettings, paths: PlatformPaths
             tools = await session.list_tools()
             resources = await session.list_resources()
             prompts = await session.list_prompts()
-        checks = [
-            DiagnosticCheck("daemon_readiness", "pass", endpoint),
+        checks.append(DiagnosticCheck("daemon_readiness", "pass", endpoint))
+        http_counts = {
+            "tools": len(tools.tools),
+            "resources": len(resources.resources),
+            "prompts": len(prompts.prompts),
+        }
+        checks.append(DiagnosticCheck("http_mcp_discovery", "pass", "HTTP MCP discovery succeeded.", http_counts))
+    except Exception as exc:
+        checks.append(
+            DiagnosticCheck(
+                "daemon_readiness",
+                "warn",
+                "Optional dashboard daemon is unavailable.",
+                {"reason": type(exc).__name__},
+            )
+        )
+        checks.append(DiagnosticCheck("http_mcp_discovery", "warn", "Skipped because the daemon is unavailable."))
+
+    container = None
+    try:
+        container = build_local_container(
+            settings,
+            paths,
+            endpoint=endpoint,
+            token_file=paths.auth_token,
+        )
+        async with create_connected_server_and_client_session(create_mcp_server(container)) as session:
+            tools = await session.list_tools()
+            resources = await session.list_resources()
+            prompts = await session.list_prompts()
+        local_counts = {
+            "tools": len(tools.tools),
+            "resources": len(resources.resources),
+            "prompts": len(prompts.prompts),
+        }
+        checks.append(
+            DiagnosticCheck("direct_mcp_discovery", "pass", "Daemonless MCP discovery succeeded.", local_counts)
+        )
+    except Exception as exc:
+        checks.append(
             DiagnosticCheck(
                 "direct_mcp_discovery",
-                "pass",
-                "MCP discovery succeeded.",
-                {"tools": len(tools.tools), "resources": len(resources.resources), "prompts": len(prompts.prompts)},
-            ),
-        ]
-        error_log = await asyncio.to_thread(Path(os.devnull).open, "w")
-        try:
-            parameters = StdioServerParameters(
-                command=sys.executable,
-                args=[
-                    "-m",
-                    "global_memory.mcp.stdio_proxy",
-                    "--endpoint",
-                    endpoint,
-                    "--token-file",
-                    str(paths.auth_token),
-                ],
+                "fail",
+                "Daemonless MCP discovery failed.",
+                {"reason": type(exc).__name__},
             )
-            async with (
-                stdio_client(parameters, errlog=error_log) as (proxy_read, proxy_write),
-                ClientSession(proxy_read, proxy_write) as proxy_session,
-            ):
-                await proxy_session.initialize()
-                status = await proxy_session.call_tool("memory_status", {})
-                if status.isError:
-                    raise RuntimeError("stdio proxy status failed")
-        finally:
-            await asyncio.to_thread(error_log.close)
-        checks.append(DiagnosticCheck("stdio_proxy", "pass", "stdio MCP status succeeded."))
-        return checks
+        )
+    finally:
+        if container is not None:
+            container.database.close()
+
+    error_log = await asyncio.to_thread(Path(os.devnull).open, "w")
+    try:
+        parameters = StdioServerParameters(
+            command=sys.executable,
+            args=[
+                "-m",
+                "global_memory.mcp.stdio_proxy",
+                "--endpoint",
+                endpoint,
+                "--token-file",
+                str(paths.auth_token),
+                "--config",
+                str(paths.config_file),
+                "--state",
+                str(paths.data_dir),
+                "--direct",
+            ],
+        )
+        async with (
+            stdio_client(parameters, errlog=error_log) as (proxy_read, proxy_write),
+            ClientSession(proxy_read, proxy_write) as proxy_session,
+        ):
+            await proxy_session.initialize()
+            status = await proxy_session.call_tool("memory_status", {})
+            if status.isError:
+                raise RuntimeError("stdio bridge status failed")
+        checks.append(DiagnosticCheck("stdio_proxy", "pass", "Daemonless stdio MCP status succeeded."))
     except Exception as exc:
-        return [
-            DiagnosticCheck("daemon_readiness", "warn", "Daemon is unavailable.", {"reason": type(exc).__name__}),
-            DiagnosticCheck("direct_mcp_discovery", "warn", "Skipped because the daemon is unavailable."),
-            DiagnosticCheck("stdio_proxy", "warn", "Skipped because the daemon is unavailable."),
-        ]
+        checks.append(
+            DiagnosticCheck(
+                "stdio_proxy",
+                "fail",
+                "Daemonless stdio MCP status failed.",
+                {"reason": type(exc).__name__},
+            )
+        )
+    finally:
+        await asyncio.to_thread(error_log.close)
+    return checks
 
 
 def _contract_check() -> DiagnosticCheck:

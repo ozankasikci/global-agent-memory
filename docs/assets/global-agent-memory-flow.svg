@@ -21,7 +21,7 @@
 
   <g font-family="Inter, ui-sans-serif, system-ui, -apple-system, sans-serif">
     <text x="96" y="94" fill="#FAFAFA" font-size="34" font-weight="650" letter-spacing="-0.7">Shared memory for every agent.</text>
-    <text x="96" y="134" fill="#A1A1AA" font-size="18">Agents connect through MCP. You own the Markdown and approve protected access.</text>
+    <text x="96" y="134" fill="#A1A1AA" font-size="18">Agents connect through MCP. No always-on server required.</text>
 
     <g transform="translate(1192 72)">
       <rect width="312" height="38" rx="19" fill="#17140C" stroke="#3B321C"/>
@@ -51,8 +51,8 @@
       <path d="M588 247H612M588 256H612M588 265H604" stroke="#19160D" stroke-width="2.4" stroke-linecap="round"/>
       <circle cx="612" cy="247" r="2.6" fill="#19160D"/>
       <circle cx="604" cy="265" r="2.6" fill="#19160D"/>
-      <text x="572" y="332" fill="#FAFAFA" font-size="25" font-weight="680">Global Agent Memory</text>
-      <text x="572" y="367" fill="#CBB36D" font-size="16" font-weight="600">Authenticated local MCP daemon</text>
+      <text x="572" y="332" fill="#FAFAFA" font-size="25" font-weight="680">Hybrid MCP runtime</text>
+      <text x="572" y="367" fill="#CBB36D" font-size="16" font-weight="600">Direct stdio · optional local daemon</text>
       <text x="572" y="410" fill="#D4D4D8" font-size="15">Project-aware · lifecycle-safe</text>
       <text x="572" y="438" fill="#D4D4D8" font-size="15">Search · access control · audit</text>
     </g>

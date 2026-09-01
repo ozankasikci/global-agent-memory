@@ -4,6 +4,31 @@ All notable changes are recorded here.
 
 ## Unreleased
 
+## 0.1.7 - 2026-08-31
+
+### Added
+
+- Add an in-process MCP runtime so agent and CLI memory operations continue when
+  the optional HTTP daemon is unavailable.
+- Add explicit daemonless stdio operation with isolated state support for local
+  clients, tests, and temporary Vaults.
+
+### Changed
+
+- Prefer a healthy shared daemon, then fall back to the same MCP application and
+  durable SQLite state in the calling process.
+- Start the authenticated dashboard server on demand when an owner opens the UI.
+- Make background service installation opt-in during guided setup.
+- Reconcile externally edited Markdown before daemonless requests and use SQLite
+  WAL mode, busy timeouts, and serialized migrations for safe concurrent access.
+
+### Fixed
+
+- Keep Global Agent Memory usable after login, sleep, service interruption, or a
+  stopped local daemon instead of returning transport-closed errors.
+- Propagate explicit generated-state paths through direct and stdio runtimes so
+  temporary and isolated installations cannot leak into the default database.
+
 ## 0.1.6 - 2026-07-16
 
 ### Changed

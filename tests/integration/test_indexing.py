@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import shutil
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -65,6 +67,26 @@ def test_migrations_wal_full_index_filters_and_rebuild_equivalence(tmp_path: Pat
     assert [(item.memory_id, item.path, item.excerpt) for item in after] == [
         (item.memory_id, item.path, item.excerpt) for item in before
     ]
+
+
+def test_concurrent_process_style_database_opens_serialize_migrations(tmp_path: Path) -> None:
+    database_path = tmp_path / "data" / "memory.db"
+    barrier = threading.Barrier(6)
+
+    def open_database() -> tuple[int, int]:
+        barrier.wait()
+        database = IndexDatabase(database_path)
+        try:
+            version = database.connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0]
+            busy_timeout = database.connection.execute("PRAGMA busy_timeout").fetchone()[0]
+            return int(version), int(busy_timeout)
+        finally:
+            database.close()
+
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        results = list(executor.map(lambda _index: open_database(), range(6)))
+
+    assert results == [(4, 30_000)] * 6
 
 
 def test_incremental_edit_move_and_delete(tmp_path: Path) -> None:

@@ -13,10 +13,10 @@ Use `uv tool install git+https://github.com/ozankasikci/global-agent-memory.git`
 when testing the latest unreleased source.
 
 `setup` displays one plan and asks once before it changes anything. By default it uses
-`~/Documents/Global Agent Memory`, installs the native launchd or systemd user service,
-connects detected Claude Code and Codex installations, runs live verification for
-healthy clients, and opens the dashboard. It is idempotent and preserves unrelated
-client configuration.
+`~/Documents/Global Agent Memory`, connects detected Claude Code and Codex
+installations, runs live verification for healthy clients, and opens the dashboard. It
+does not install an always-on service unless `--service` is supplied. It is idempotent
+and preserves unrelated client configuration.
 
 Useful setup variants:
 
@@ -26,6 +26,7 @@ global-memory setup --yes
 global-memory setup --vault "$HOME/Memory"
 global-memory setup --clients claude-code
 global-memory setup --clients none --no-service --no-open-dashboard
+global-memory setup --service
 ```
 
 When an existing configuration is present, `--vault` must match its configured Vault.
@@ -46,7 +47,15 @@ global-memory doctor
 Initialization preserves existing README, templates, dashboards, and configuration,
 and creates the bearer token with user-only permissions.
 
-## Run the service
+## Optional background service
+
+Agent MCP and runtime CLI operations do not require a background process. The hybrid
+stdio bridge uses a healthy daemon when one exists and otherwise runs the same MCP
+server in-process. The dashboard command starts its localhost server on demand.
+
+Run the optional service when you want continuous Obsidian watching, background
+embedding retries, direct Streamable HTTP clients, or a dashboard server that is already
+warm.
 
 For an interactive foreground process:
 
@@ -74,7 +83,11 @@ The command refuses to replace an unmanaged service file, then loads/enables the
 
 ## Runtime commands
 
-`status`, `dashboard`, `search`, `context`, `remember`, `get`, `approve`, `reject`, `update`, `supersede`, `archive`, `reindex`, and every `project` command call the shared daemon through MCP. Use `--endpoint`, `--token-file`, and `--config` to override platform defaults. Use `--show-completion` or `--install-completion` for shell completion.
+`status`, `dashboard`, `search`, `context`, `remember`, `get`, `approve`, `reject`,
+`update`, `supersede`, `archive`, `reindex`, and every `project` command use the frozen
+MCP contract. They prefer a healthy shared daemon and fall back to an in-memory local
+transport. Use `--endpoint`, `--token-file`, and `--config` to override platform
+defaults. Use `--show-completion` or `--install-completion` for shell completion.
 
 ## Review dashboard
 
@@ -84,7 +97,13 @@ global-memory dashboard
 global-memory dashboard --no-open
 ```
 
-The dashboard provides project overview, one-at-a-time candidate review and editing, duplicate/conflict comparison, memory search, access-request approval, temporary grant revocation, audited sealed-memory unlocks, project switching, system status, reindexing, timestamped Vault backups, and links to canonical Markdown. The launch URL expires after 60 seconds, can be exchanged only once, and creates a local HttpOnly session. Do not share the URL. The UI is served only by the localhost daemon and its private JSON endpoints are not a public integration contract.
+The dashboard command starts the authenticated localhost server when necessary. The
+dashboard provides project overview, one-at-a-time candidate review and editing,
+duplicate/conflict comparison, memory search, access-request approval, temporary grant
+revocation, audited sealed-memory unlocks, project switching, system status, reindexing,
+timestamped Vault backups, and links to canonical Markdown. The launch URL expires after
+60 seconds, can be exchanged only once, and creates a local HttpOnly session. Do not
+share the URL. Its private JSON endpoints are not a public integration contract.
 
 Visibility is fail-closed across MCP tools and resources:
 
@@ -102,17 +121,22 @@ global-memory doctor --json
 global-memory reindex --full
 ```
 
-Doctor checks configuration, Vault permissions/folders, Markdown validity and duplicate IDs, SQLite integrity/migrations/WAL/jobs, project resolution, vector and embedding state, daemon readiness, direct MCP discovery, stdio proxy calls, contract hashes, and client integration state. Provider and daemon outages are warnings when canonical Markdown remains healthy.
+Doctor checks configuration, Vault permissions/folders, Markdown validity and duplicate
+IDs, SQLite integrity/migrations/WAL/jobs, project resolution, vector and embedding
+state, optional daemon readiness, daemonless direct MCP discovery, daemonless stdio
+calls, contract hashes, and client integration state. A daemon outage is a warning.
+Failure of the daemonless MCP path is an error.
 
-Generated SQLite/vector state can be deleted while the daemon is stopped. Startup reconciliation rebuilds it from Markdown and quarantines corrupt databases automatically.
+Generated SQLite/vector state can be deleted when no GAM process is using it. The next
+runtime startup rebuilds it from Markdown and quarantines corrupt databases
+automatically.
 
 ### Recover from a closed MCP transport
 
-Current GAM daemons use stateless Streamable HTTP requests, so an idle coding-agent
-bridge does not retain an expiring server session. After upgrading from an older
-installation, restart Claude Code or Codex once so it launches the updated
-`global-memory-mcp` bridge. If a client still reports `32600: Session terminated` or
-`Transport closed`, verify both layers:
+Current GAM daemons use stateless Streamable HTTP requests, and the stdio bridge can run
+locally when HTTP is absent. After upgrading from an older installation, restart Claude
+Code or Codex once so it launches the updated `global-memory-mcp` bridge. If a client
+still reports `32600: Session terminated` or `Transport closed`, verify the bridge:
 
 ```shell
 global-memory status
@@ -120,9 +144,10 @@ global-memory doctor
 global-memory integrations verify all
 ```
 
-Do not interpret a transport failure as an empty memory result. Reconnect first, then
-repeat `memory_search`; only a successful search response is authoritative about
-whether a matching memory exists.
+The daemon readiness check may warn while the direct MCP and stdio checks pass. That is
+a healthy daemonless installation. Do not interpret a transport failure as an empty
+memory result. Reconnect first, then repeat `memory_search`; only a successful search
+response is authoritative about whether a matching memory exists.
 
 ## Backup, restore, upgrade, and rollback
 
