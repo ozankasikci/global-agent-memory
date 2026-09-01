@@ -473,6 +473,7 @@ intentionally introduced.
 | [Operations](docs/operations.md)                                      | Installation, daemon management, diagnostics, backup, restore, upgrades, and recovery |
 | [Claude Code](docs/claude-code.md)                                    | Managed skill and MCP registration for Claude Code                                    |
 | [Codex](docs/codex.md)                                                | Managed skill and MCP registration for Codex                                          |
+| [Hermes Agent](docs/hermes-agent.md)                                  | Manual stdio MCP registration and verified retrieval smoke test                       |
 | [Architecture](docs/architecture.md)                                  | Dependency direction and hybrid runtime ownership model                               |
 | [Configuration](docs/configuration.md)                                | Platform-native locations, environment variables, and security defaults               |
 | [MCP Contract V1](docs/mcp-contract-v1.md)                            | Public compatibility and response-envelope rules                                      |
